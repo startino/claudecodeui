@@ -25,6 +25,11 @@ export interface ProjectSession {
   messageCount?: number;
   __provider?: LLMProvider;
   __projectName?: string;
+  /**
+   * Client-only flag on synthetic sidebar rows that stand in for a new
+   * session while its real id is still being minted by the server.
+   */
+  __pending?: boolean;
   [key: string]: unknown;
 }
 
