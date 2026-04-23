@@ -105,19 +105,44 @@ export default function CommandPalette({
     query.trim().length >= TRANSCRIPT_MIN_CHARS &&
     (transcriptResults.length > 0 || isTranscriptSearching);
 
+  // Mirror Command.tsx's visibility filter (substring match on lowercased
+  // `value` prop) so we can suppress group headings whose items all collapse
+  // for the current query. Keeping this in the render site avoids touching
+  // Command.tsx and keeps the data-flow one-way.
+  const normalizedQuery = query.toLowerCase();
+  const matchesQuery = (value: string) =>
+    !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
+
+  const actionValues = [
+    `new session ${activeProjectName}`,
+    ...(hasSelectedSession ? ['archive current session'] : []),
+    ...(hasActiveFilter ? ['clear project filter'] : []),
+    'refresh projects',
+    'open settings',
+    'keyboard shortcuts help',
+  ];
+  const showActionsGroup = actionValues.some(matchesQuery);
+  const showProjectsGroup =
+    railItems.length > 0 &&
+    railItems.some((p) => matchesQuery(`project ${p.displayName || p.name}`));
+  const showSessionsGroup =
+    sessions.length > 0 &&
+    sessions.some((s) => matchesQuery(`session ${s.summary || s.id} ${s.__projectDisplayName}`));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl overflow-hidden p-0">
         <DialogTitle>Command Palette</DialogTitle>
         <Command>
           <CommandInput
-            placeholder="Type a command or search sessions…"
+            placeholder="Type a command or search sessions and transcripts…"
             autoFocus
             onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
           />
           <CommandList className="max-h-[440px]">
             {!showTranscriptGroup && <CommandEmpty>No results found.</CommandEmpty>}
 
+            {showActionsGroup && (
             <CommandGroup heading="Actions">
               <CommandItem
                 value={`new session ${activeProjectName}`}
@@ -177,8 +202,9 @@ export default function CommandPalette({
                 <span>Keyboard shortcuts</span>
               </CommandItem>
             </CommandGroup>
+            )}
 
-            {railItems.length > 0 && (
+            {showProjectsGroup && (
               <>
                 <CommandSeparator />
                 <CommandGroup heading="Projects">
@@ -201,7 +227,7 @@ export default function CommandPalette({
               </>
             )}
 
-            {sessions.length > 0 && (
+            {showSessionsGroup && (
               <>
                 <CommandSeparator />
                 <CommandGroup heading="Sessions">
