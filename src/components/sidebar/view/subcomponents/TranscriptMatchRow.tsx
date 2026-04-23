@@ -24,9 +24,25 @@ type TranscriptMatchRowProps = {
   onSelect: () => void;
 };
 
+/**
+ * Normalize server-built snippets that can produce degenerate ellipsis
+ * runs like "...." when the server's "..." prefix/suffix sits next to a
+ * dot in the source text (e.g. ".prose/runs/…"). We collapse any run of
+ * 3+ dots to a single unicode ellipsis, then absorb adjacent dots/spaces
+ * on either side of that ellipsis so "…." never renders.
+ */
+function normalizeSnippet(raw: string): string {
+  return raw
+    .replace(/\.{3,}/g, '…')
+    .replace(/…[\s.]*\./g, '…')
+    .replace(/\.[\s.]*…/g, '…')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export default function TranscriptMatchRow({ result, onSelect }: TranscriptMatchRowProps) {
   const title = result.sessionSummary || result.sessionId;
-  const snippet = result.match.snippet;
+  const snippet = normalizeSnippet(result.match.snippet);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' || e.key === ' ') {
