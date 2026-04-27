@@ -843,6 +843,12 @@ export function useChatComposerState({
 
       safeLocalStorage.removeItem(draftKey);
       safeLocalStorage.removeItem(legacyKey);
+      // Clear the in-flight snapshot immediately on successful send so a
+      // hard reload before the WS 'complete' event does not restore the
+      // just-sent message into the textarea.  The isLoading-based clear in
+      // the effect below is a belt-and-suspenders fallback for the case where
+      // the send path throws before reaching here.
+      safeLocalStorage.removeItem(`in_flight_send_${selectedProject.name}`);
     },
     [
       selectedSession,
