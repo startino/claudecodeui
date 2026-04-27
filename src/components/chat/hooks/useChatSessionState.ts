@@ -190,17 +190,10 @@ export function useChatSessionState({
     // clicked into before the backend responded.
     if (pendingUserMessage && all.length === 0) {
       const pendingTarget = pendingViewSessionRef.current?.sessionId ?? null;
-      // Guard: only show the optimistic bubble on the view it belongs to.
-      // Require an explicit session-ownership match so an unrelated empty
-      // session (one that happens to have no messages yet) never shows it.
-      //   • pendingTarget === null  → pre-session_created "New Chat" view;
-      //     only show when there is no active session (null).
-      //   • pendingTarget !== null  → session_created has stamped an id;
-      //     only show for that exact session.
-      const ownsThisPending = pendingTarget === null
+      const matchesView = pendingTarget === null
         ? activeSessionId === null
-        : pendingTarget === activeSessionId;
-      if (ownsThisPending) return [pendingUserMessage];
+        : activeSessionId === pendingTarget;
+      if (matchesView) return [pendingUserMessage];
     }
     if (viewHiddenCount > 0 && viewHiddenCount < all.length) return all.slice(0, -viewHiddenCount);
     return all;
