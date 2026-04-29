@@ -60,6 +60,8 @@ export interface ChatMessage {
   taskId?: string;
   taskEvent?: string;
   displayText?: string;
+  model?: string;
+  effort?: string;
   [key: string]: unknown;
 }
 

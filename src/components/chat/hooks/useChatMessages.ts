@@ -65,6 +65,8 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
             type: 'assistant',
             content: text,
             timestamp: msg.timestamp,
+            model: msg.model,
+            effort: msg.effort,
           });
         }
         break;
@@ -113,6 +115,8 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
                 isComplete: Boolean(toolResult),
               }
             : undefined,
+          model: msg.model,
+          effort: msg.effort,
         });
         break;
       }
@@ -124,6 +128,8 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
             content: unescapeWithMathProtection(msg.content),
             timestamp: msg.timestamp,
             isThinking: true,
+            model: msg.model,
+            effort: msg.effort,
           });
         }
         break;

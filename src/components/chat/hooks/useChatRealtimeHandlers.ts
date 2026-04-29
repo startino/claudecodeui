@@ -3,6 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { ChatMessage, PendingPermissionRequest } from '../types/types';
 import type { Project, ProjectSession, LLMProvider } from '../../../types/app';
 import type { SessionStore, NormalizedMessage } from '../../../stores/useSessionStore';
+import { adoptPendingEffortForSession, getLastSubmittedEffort } from '../../../stores/liveSubmissionMeta';
 
 type PendingViewSession = {
   sessionId: string | null;
@@ -224,6 +225,20 @@ export function useChatRealtimeHandlers({
       return;
     }
 
+    // Tag live assistant messages with the effort the user picked at submit
+    // time. The Claude JSONL doesn't echo the effort back, so this is the only
+    // chance to label these messages — it's lost on reload.
+    const isAssistantKind =
+      (msg.kind === 'text' && msg.role === 'assistant') ||
+      msg.kind === 'tool_use' ||
+      msg.kind === 'thinking';
+    if (sid && isAssistantKind) {
+      const effort = getLastSubmittedEffort(sid);
+      if (effort && !(msg as NormalizedMessage).effort) {
+        (msg as NormalizedMessage).effort = effort;
+      }
+    }
+
     // --- All other messages: route to store ---
     if (sid) {
       sessionStore.appendRealtime(sid, msg as NormalizedMessage);
@@ -234,6 +249,7 @@ export function useChatRealtimeHandlers({
       case 'session_created': {
         const newSessionId = msg.newSessionId;
         if (!newSessionId) break;
+        adoptPendingEffortForSession(newSessionId);
 
         // Resolve the in-flight new-session ref and — critically — flush the
         // optimistically-rendered user message into the new session's store,

@@ -203,8 +203,23 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
                   <SessionProviderLogo provider={provider} className="h-full w-full" />
                 </div>
               )}
-              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                {message.type === 'error' ? t('messageTypes.error') : message.type === 'tool' ? t('messageTypes.tool') : (provider === 'cursor' ? t('messageTypes.cursor') : provider === 'codex' ? t('messageTypes.codex') : provider === 'gemini' ? t('messageTypes.gemini') : t('messageTypes.claude'))}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  {message.type === 'error' ? t('messageTypes.error') : message.type === 'tool' ? t('messageTypes.tool') : (provider === 'cursor' ? t('messageTypes.cursor') : provider === 'codex' ? t('messageTypes.codex') : provider === 'gemini' ? t('messageTypes.gemini') : t('messageTypes.claude'))}
+                </div>
+                {message.type === 'assistant' && message.model && (
+                  <span
+                    className="rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                    title={message.model}
+                  >
+                    {String(message.model).replace(/^claude-/, '').replace(/-2\d{7}$/, '')}
+                  </span>
+                )}
+                {message.type === 'assistant' && message.effort && (
+                  <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                    {String(message.effort)}
+                  </span>
+                )}
               </div>
             </div>
           )}

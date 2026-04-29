@@ -177,6 +177,8 @@ export class ClaudeSessionsProvider implements IProviderSessions {
     }
 
     if (raw.message?.role === 'assistant' && raw.message?.content) {
+      const rawModel = typeof raw.message.model === 'string' ? raw.message.model : undefined;
+      const model = rawModel && rawModel !== '<synthetic>' ? rawModel : undefined;
       if (Array.isArray(raw.message.content)) {
         let partIndex = 0;
         for (const part of raw.message.content) {
@@ -189,6 +191,7 @@ export class ClaudeSessionsProvider implements IProviderSessions {
               kind: 'text',
               role: 'assistant',
               content: part.text,
+              model,
             }));
           } else if (part.type === 'tool_use') {
             messages.push(createNormalizedMessage({
@@ -200,6 +203,7 @@ export class ClaudeSessionsProvider implements IProviderSessions {
               toolName: part.name,
               toolInput: part.input,
               toolId: part.id,
+              model,
             }));
           } else if (part.type === 'thinking' && part.thinking) {
             messages.push(createNormalizedMessage({
@@ -209,6 +213,7 @@ export class ClaudeSessionsProvider implements IProviderSessions {
               provider: PROVIDER,
               kind: 'thinking',
               content: part.thinking,
+              model,
             }));
           }
           partIndex++;
@@ -222,6 +227,7 @@ export class ClaudeSessionsProvider implements IProviderSessions {
           kind: 'text',
           role: 'assistant',
           content: raw.message.content,
+          model,
         }));
       }
       return messages;

@@ -69,6 +69,8 @@ export type NormalizedMessage = {
   toolUseResult?: unknown;
   sequence?: number;
   rowid?: number;
+  model?: string;
+  effort?: string;
   [key: string]: unknown;
 };
 

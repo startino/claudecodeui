@@ -12,6 +12,7 @@ import type {
 import { useDropzone } from 'react-dropzone';
 import { authenticatedFetch } from '../../../utils/api';
 import { DEFAULT_THINKING_MODE_ID, getEffortForModeId } from '../constants/thinkingModes';
+import { setLastSubmittedEffort } from '../../../stores/liveSubmissionMeta';
 import { grantClaudeToolPermission } from '../utils/chatPermissions';
 import { safeLocalStorage } from '../utils/chatStorage';
 import type {
@@ -863,6 +864,7 @@ export function useChatComposerState({
             ...(selectedEffort ? { effort: selectedEffort } : {}),
           },
         });
+        setLastSubmittedEffort(effectiveSessionId, selectedEffort);
       }
 
       // If the WS was closed at send time, the payload landed in the

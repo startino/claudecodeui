@@ -65,6 +65,10 @@ export interface NormalizedMessage {
   // Cursor-specific ordering
   sequence?: number;
   rowid?: number;
+  // Per-message model identifier (e.g. "claude-opus-4-7")
+  model?: string;
+  // Reasoning effort selected at submit time (live messages only)
+  effort?: string;
 }
 
 // ─── Per-session slot ────────────────────────────────────────────────────────
