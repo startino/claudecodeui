@@ -11,6 +11,7 @@ import GeminiResponseHandler from './gemini-response-handler.js';
 import { notifyRunFailed, notifyRunStopped } from './services/notification-orchestrator.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { createNormalizedMessage } from './shared/utils.js';
+import { DEFAULT_WORKSPACE_DIR } from './routes/projects.js';
 
 let activeGeminiProcesses = new Map(); // Track active processes by session ID
 
@@ -45,7 +46,7 @@ async function spawnGemini(command, options = {}, ws) {
 
     // Use cwd (actual project directory) instead of projectPath (Gemini's metadata directory)
     // Clean the path by removing any non-printable characters
-    const cleanPath = (cwd || projectPath || process.cwd()).replace(/[^\x20-\x7E]/g, '').trim();
+    const cleanPath = (cwd || projectPath || DEFAULT_WORKSPACE_DIR).replace(/[^\x20-\x7E]/g, '').trim();
     const workingDir = cleanPath;
 
     // Handle images by saving them to temporary files and passing paths to Gemini
@@ -342,7 +343,7 @@ async function spawnGemini(command, options = {}, ws) {
                 sessionCreatedSent = true;
 
                 // Create session in session manager
-                sessionManager.createSession(capturedSessionId, cwd || process.cwd());
+                sessionManager.createSession(capturedSessionId, cwd || DEFAULT_WORKSPACE_DIR);
 
                 // Save the user message now that we have a session ID
                 if (command) {

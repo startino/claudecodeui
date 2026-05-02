@@ -43,7 +43,7 @@ import mcpUtilsRoutes from './routes/mcp-utils.js';
 import commandsRoutes from './routes/commands.js';
 import settingsRoutes from './routes/settings.js';
 import agentRoutes from './routes/agent.js';
-import projectsRoutes, { WORKSPACES_ROOT, validateWorkspacePath } from './routes/projects.js';
+import projectsRoutes, { WORKSPACES_ROOT, DEFAULT_WORKSPACE_DIR, validateWorkspacePath } from './routes/projects.js';
 import userRoutes from './routes/user.js';
 import codexRoutes from './routes/codex.js';
 import geminiRoutes from './routes/gemini.js';
@@ -604,8 +604,8 @@ app.get('/api/browse-filesystem', authenticateToken, async (req, res) => {
 
         console.log('[API] Browse filesystem request for path:', dirPath);
         console.log('[API] WORKSPACES_ROOT is:', WORKSPACES_ROOT);
-        // Default to home directory if no path provided
-        const defaultRoot = WORKSPACES_ROOT;
+        // Default to the shared workspace dir if no path provided
+        const defaultRoot = DEFAULT_WORKSPACE_DIR;
         let targetPath = dirPath ? expandWorkspacePath(dirPath) : defaultRoot;
 
         // Resolve and normalize the path
@@ -1605,7 +1605,15 @@ function handleShellConnection(ws) {
             console.log('📨 Shell message received:', data.type);
 
             if (data.type === 'init') {
-                const projectPath = data.projectPath || process.cwd();
+                // Treat the user's home dir as "no real project" — fall back to the shared default.
+                // The home dir often gets auto-registered as a Claude project, but it's not a real workspace.
+                const rawProjectPath = data.projectPath;
+                const homeDir = process.env.HOME || os.homedir();
+                const isHomeAsProject = rawProjectPath && path.resolve(rawProjectPath) === path.resolve(homeDir);
+                const projectPath = (!rawProjectPath || isHomeAsProject) ? DEFAULT_WORKSPACE_DIR : rawProjectPath;
+                if (isHomeAsProject) {
+                    console.log('[INFO] Overriding home-dir project path to DEFAULT_WORKSPACE_DIR:', DEFAULT_WORKSPACE_DIR);
+                }
                 const sessionId = data.sessionId;
                 const hasSession = data.hasSession;
                 const provider = data.provider || 'claude';

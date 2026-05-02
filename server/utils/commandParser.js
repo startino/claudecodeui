@@ -4,6 +4,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { parse as parseShellCommand } from 'shell-quote';
 import { parseFrontmatter } from './frontmatter.js';
+import { DEFAULT_WORKSPACE_DIR } from '../routes/projects.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -250,7 +251,7 @@ export function sanitizeOutput(output) {
 export async function processBashCommands(content, options = {}) {
   if (!content) return content;
 
-  const { cwd = process.cwd(), timeout = BASH_TIMEOUT } = options;
+  const { cwd = DEFAULT_WORKSPACE_DIR, timeout = BASH_TIMEOUT } = options;
 
   // Match !command patterns (at start of line or after whitespace)
   const commandPattern = /(?:^|\n)!(.+?)(?=\n|$)/g;

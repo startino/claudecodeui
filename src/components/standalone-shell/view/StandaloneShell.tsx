@@ -1,8 +1,14 @@
 import { useCallback, useState } from 'react';
 import type { Project, ProjectSession } from '../../../types/app';
 import Shell from '../../shell/view/Shell';
-import StandaloneShellEmptyState from './subcomponents/StandaloneShellEmptyState';
 import StandaloneShellHeader from './subcomponents/StandaloneShellHeader';
+
+const SHARED_DEFAULT_PROJECT: Project = {
+  name: 'shared-default',
+  displayName: 'Shared',
+  path: '/shared',
+  fullPath: '/shared',
+} as Project;
 
 type StandaloneShellProps = {
   project?: Project | null;
@@ -40,7 +46,11 @@ export default function StandaloneShell({
   // Keep `compact` in the public API for compatibility with existing callers.
   void compact;
 
-  const shouldUsePlainShell = isPlainShell !== null ? isPlainShell : command !== null;
+  // Fall back to a plain shell at /shared when no project is selected.
+  const effectiveProject = project ?? SHARED_DEFAULT_PROJECT;
+  const hasRealProject = project !== null;
+  const shouldUsePlainShell =
+    !hasRealProject || (isPlainShell !== null ? isPlainShell : command !== null);
 
   const handleProcessComplete = useCallback(
     (exitCode: number) => {
@@ -50,10 +60,6 @@ export default function StandaloneShell({
     [onComplete],
   );
 
-  if (!project) {
-    return <StandaloneShellEmptyState className={className} />;
-  }
-
   return (
     <div className={`flex h-full w-full flex-col ${className}`}>
       {!minimal && showHeader && title && (
@@ -62,9 +68,9 @@ export default function StandaloneShell({
 
       <div className="min-h-0 w-full flex-1">
         <Shell
-          selectedProject={project}
-          selectedSession={session}
-          initialCommand={command}
+          selectedProject={effectiveProject}
+          selectedSession={hasRealProject ? session : null}
+          initialCommand={hasRealProject ? command : null}
           isPlainShell={shouldUsePlainShell}
           isActive={isActive}
           onProcessComplete={handleProcessComplete}

@@ -4,6 +4,7 @@ import { notifyRunFailed, notifyRunStopped } from './services/notification-orche
 import { sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { createNormalizedMessage } from './shared/utils.js';
+import { DEFAULT_WORKSPACE_DIR } from './routes/projects.js';
 
 // Use cross-spawn on Windows for better command execution
 const spawnFunction = process.platform === 'win32' ? crossSpawn : spawn;
@@ -68,7 +69,7 @@ async function spawnCursor(command, options = {}, ws) {
     }
 
     // Use cwd (actual project directory) instead of projectPath
-    const workingDir = cwd || projectPath || process.cwd();
+    const workingDir = cwd || projectPath || DEFAULT_WORKSPACE_DIR;
 
     // Store process reference for potential abort
     const processKey = capturedSessionId || Date.now().toString();

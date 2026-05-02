@@ -24,7 +24,7 @@ type ProjectCreationWizardProps = {
 
 const initialFormState: WizardFormState = {
   workspaceType: 'existing',
-  workspacePath: '',
+  workspacePath: '/shared/',
   githubUrl: '',
   tokenMode: 'stored',
   selectedGithubToken: '',

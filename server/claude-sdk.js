@@ -27,6 +27,7 @@ import {
 import { sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { createNormalizedMessage } from './shared/utils.js';
+import { DEFAULT_WORKSPACE_DIR } from './routes/projects.js';
 
 const activeSessions = new Map();
 const pendingToolApprovals = new Map();
@@ -349,7 +350,7 @@ async function handleImages(command, images, cwd) {
 
   try {
     // Create temp directory in the project directory
-    const workingDir = cwd || process.cwd();
+    const workingDir = cwd || DEFAULT_WORKSPACE_DIR;
     tempDir = path.join(workingDir, '.tmp', 'images', Date.now().toString());
     await fs.mkdir(tempDir, { recursive: true });
 
@@ -406,7 +407,7 @@ async function handleFiles(command, fileData, cwd, userId) {
   }
 
   try {
-    const workingDir = cwd || process.cwd();
+    const workingDir = cwd || DEFAULT_WORKSPACE_DIR;
     tempDir = path.join(workingDir, '.tmp', 'uploads', Date.now().toString());
     await fs.mkdir(tempDir, { recursive: true });
 

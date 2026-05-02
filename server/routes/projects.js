@@ -1,5 +1,5 @@
 import express from 'express';
-import { promises as fs } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import os from 'os';
@@ -14,6 +14,21 @@ function sanitizeGitError(message, token) {
 
 // Configure allowed workspace root (defaults to user's home directory)
 export const WORKSPACES_ROOT = process.env.WORKSPACES_ROOT || os.homedir();
+
+// Additional roots that are allowed in addition to WORKSPACES_ROOT.
+// Colon-separated. Useful for shared deployment dirs like /shared on Pluto.
+export const WORKSPACES_EXTRA_ROOTS = (process.env.WORKSPACES_EXTRA_ROOTS ?? '/shared:/home')
+  .split(':')
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+
+// Where the file browser, project-creation wizard, and shell open by default
+// when there is no explicit project context. Falls back to WORKSPACES_ROOT
+// if the configured directory doesn't exist on this machine.
+export const DEFAULT_WORKSPACE_DIR = (() => {
+  const candidate = process.env.DEFAULT_WORKSPACE_DIR || '/shared';
+  return existsSync(candidate) ? candidate : WORKSPACES_ROOT;
+})();
 
 // System-critical paths that should never be used as workspace directories
 export const FORBIDDEN_PATHS = [
@@ -110,15 +125,27 @@ export async function validateWorkspacePath(requestedPath) {
       }
     }
 
-    // Resolve the workspace root to its real path
-    const resolvedWorkspaceRoot = await fs.realpath(WORKSPACES_ROOT);
+    // Resolve all allowed roots to their real paths (skip ones that don't exist)
+    const candidateRoots = [WORKSPACES_ROOT, ...WORKSPACES_EXTRA_ROOTS];
+    const resolvedRoots = [];
+    for (const root of candidateRoots) {
+      try {
+        resolvedRoots.push(await fs.realpath(root));
+      } catch {
+        // Root doesn't exist on this machine — skip it silently
+      }
+    }
 
-    // Ensure the resolved path is contained within the allowed workspace root
-    if (!realPath.startsWith(resolvedWorkspaceRoot + path.sep) &&
-        realPath !== resolvedWorkspaceRoot) {
+    const isWithinAnyRoot = (candidatePath) =>
+      resolvedRoots.some(
+        (root) => candidatePath === root || candidatePath.startsWith(root + path.sep),
+      );
+
+    // Ensure the resolved path is contained within an allowed workspace root
+    if (!isWithinAnyRoot(realPath)) {
       return {
         valid: false,
-        error: `Workspace path must be within the allowed workspace root: ${WORKSPACES_ROOT}`
+        error: `Workspace path must be within an allowed workspace root: ${candidateRoots.join(', ')}`
       };
     }
 
@@ -128,16 +155,15 @@ export async function validateWorkspacePath(requestedPath) {
       const stats = await fs.lstat(absolutePath);
 
       if (stats.isSymbolicLink()) {
-        // Verify symlink target is also within allowed root
+        // Verify symlink target is also within an allowed root
         const linkTarget = await fs.readlink(absolutePath);
         const resolvedTarget = path.resolve(path.dirname(absolutePath), linkTarget);
         const realTarget = await fs.realpath(resolvedTarget);
 
-        if (!realTarget.startsWith(resolvedWorkspaceRoot + path.sep) &&
-            realTarget !== resolvedWorkspaceRoot) {
+        if (!isWithinAnyRoot(realTarget)) {
           return {
             valid: false,
-            error: 'Symlink target is outside the allowed workspace root'
+            error: 'Symlink target is outside the allowed workspace roots'
           };
         }
       }

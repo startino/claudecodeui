@@ -18,6 +18,7 @@ import { notifyRunFailed, notifyRunStopped } from './services/notification-orche
 import { sessionsService } from './modules/providers/services/sessions.service.js';
 import { providerAuthService } from './modules/providers/services/provider-auth.service.js';
 import { createNormalizedMessage } from './shared/utils.js';
+import { DEFAULT_WORKSPACE_DIR } from './routes/projects.js';
 
 // Track active sessions
 const activeCodexSessions = new Map();
@@ -202,7 +203,7 @@ export async function queryCodex(command, options = {}, ws) {
     permissionMode = 'default'
   } = options;
 
-  const workingDirectory = cwd || projectPath || process.cwd();
+  const workingDirectory = cwd || projectPath || DEFAULT_WORKSPACE_DIR;
   const { sandboxMode, approvalPolicy } = mapPermissionModeToCodexOptions(permissionMode);
 
   let codex;

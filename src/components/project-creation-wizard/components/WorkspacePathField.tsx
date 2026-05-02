@@ -5,6 +5,7 @@ import { browseFilesystemFolders } from '../data/workspaceApi';
 import { getSuggestionRootPath } from '../utils/pathUtils';
 import type { FolderSuggestion, WorkspaceType } from '../types';
 import FolderBrowserModal from './FolderBrowserModal';
+import HomeSharedToggle, { detectRootFromPath } from './HomeSharedToggle';
 
 type WorkspacePathFieldProps = {
   workspaceType: WorkspaceType;
@@ -80,8 +81,22 @@ export default function WorkspacePathField({
     [onAdvanceToConfirm, onChange],
   );
 
+  const handleRootToggle = useCallback(
+    (_: 'home' | 'shared', targetPath: string) => {
+      onChange(`${targetPath}/`);
+    },
+    [onChange],
+  );
+
   return (
     <>
+      <div className="mb-2">
+        <HomeSharedToggle
+          selected={detectRootFromPath(value || '/shared')}
+          onSelect={handleRootToggle}
+        />
+      </div>
+
       <div className="relative flex gap-2">
         <div className="relative flex-1">
           <Input
@@ -90,8 +105,8 @@ export default function WorkspacePathField({
             onChange={(event) => onChange(event.target.value)}
             placeholder={
               workspaceType === 'existing'
-                ? '/path/to/existing/workspace'
-                : '/path/to/new/workspace'
+                ? '/shared/existing-workspace'
+                : '/shared/new-workspace'
             }
             className="w-full"
             disabled={disabled}

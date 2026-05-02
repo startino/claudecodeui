@@ -2,6 +2,9 @@ import { FolderOpen, Globe, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button, Input } from '../../../../shared/view/ui';
+import HomeSharedToggle, {
+  detectRootFromPath,
+} from '../../../project-creation-wizard/components/HomeSharedToggle';
 import {
   MCP_PROVIDER_NAMES,
   MCP_SUPPORTED_SCOPES,
@@ -328,10 +331,16 @@ export default function McpServerFormModal({
                   <label className="mb-2 block text-sm font-medium text-foreground">
                     Working Directory
                   </label>
+                  <div className="mb-2">
+                    <HomeSharedToggle
+                      selected={detectRootFromPath(formData.cwd || '/shared')}
+                      onSelect={(_, targetPath) => updateForm('cwd', `${targetPath}/`)}
+                    />
+                  </div>
                   <Input
                     value={formData.cwd}
                     onChange={(event) => updateForm('cwd', event.target.value)}
-                    placeholder="."
+                    placeholder="/shared/"
                   />
                 </div>
               )}

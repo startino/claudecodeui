@@ -4,6 +4,7 @@ import { Button, Input } from '../../../shared/view/ui';
 import { browseFilesystemFolders, createFolderInFilesystem } from '../data/workspaceApi';
 import { getParentPath, joinFolderPath } from '../utils/pathUtils';
 import type { FolderSuggestion } from '../types';
+import HomeSharedToggle, { detectRootFromPath } from './HomeSharedToggle';
 
 type FolderBrowserModalProps = {
   isOpen: boolean;
@@ -18,7 +19,7 @@ export default function FolderBrowserModal({
   onClose,
   onFolderSelected,
 }: FolderBrowserModalProps) {
-  const [currentPath, setCurrentPath] = useState('~');
+  const [currentPath, setCurrentPath] = useState('/shared');
   const [folders, setFolders] = useState<FolderSuggestion[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [showHiddenFolders, setShowHiddenFolders] = useState(false);
@@ -46,7 +47,7 @@ export default function FolderBrowserModal({
     if (!isOpen) {
       return;
     }
-    loadFolders('~');
+    loadFolders('/shared');
   }, [isOpen, loadFolders]);
 
   const visibleFolders = useMemo(
@@ -177,6 +178,13 @@ export default function FolderBrowserModal({
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
+
+        <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-2 dark:border-gray-700">
+          <HomeSharedToggle
+            selected={detectRootFromPath(currentPath)}
+            onSelect={(_, targetPath) => loadFolders(targetPath)}
+          />
+        </div>
 
         <div className="flex-1 overflow-y-auto p-4">
           {loadingFolders ? (
