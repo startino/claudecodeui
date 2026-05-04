@@ -137,6 +137,14 @@ export default function CommandPalette({
     minChars: TRANSCRIPT_MIN_CHARS,
   });
 
+  // Captured once per open so all transcript rows share a consistent reference
+  // point for "how long ago". The palette is short-lived enough that drift is
+  // not worth a ticking interval.
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    if (open) setNow(new Date());
+  }, [open]);
+
   const run = (fn: () => void) => () => {
     fn();
     onOpenChange(false);
@@ -328,6 +336,7 @@ export default function CommandPalette({
                       <TranscriptMatchRow
                         key={`${r.projectName}:${r.sessionId}`}
                         result={r}
+                        now={now}
                         onSelect={() => handleTranscriptSelect(r)}
                       />
                     ))

@@ -1904,13 +1904,28 @@ async function searchConversations(query, limit = 50, onProjectResult = null, si
 
   const extractText = (content) => {
     if (typeof content === 'string') return content;
-    if (Array.isArray(content)) {
-      return content
-        .filter(part => part.type === 'text' && part.text)
-        .map(part => part.text)
-        .join(' ');
+    if (!Array.isArray(content)) return '';
+    const parts = [];
+    for (const part of content) {
+      if (!part || typeof part !== 'object') continue;
+      if (part.type === 'text' && part.text) {
+        parts.push(part.text);
+      } else if (part.type === 'tool_use') {
+        if (part.name) parts.push(part.name);
+        if (part.input !== undefined) {
+          try { parts.push(JSON.stringify(part.input)); } catch { /* skip non-serializable */ }
+        }
+      } else if (part.type === 'tool_result' && part.content !== undefined) {
+        if (typeof part.content === 'string') {
+          parts.push(part.content);
+        } else if (Array.isArray(part.content)) {
+          for (const sub of part.content) {
+            if (sub && sub.type === 'text' && sub.text) parts.push(sub.text);
+          }
+        }
+      }
     }
-    return '';
+    return parts.join(' ');
   };
 
   const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1963,7 +1978,21 @@ async function searchConversations(query, limit = 50, onProjectResult = null, si
   try {
     await fs.access(claudeDir);
     const entries = await fs.readdir(claudeDir, { withFileTypes: true });
-    const projectDirs = entries.filter(e => e.isDirectory());
+    const projectDirsRaw = entries.filter(e => e.isDirectory());
+    // Sort projects by mtime desc so newest-modified projects are scanned first.
+    // Without this, fs.readdir order is filesystem-dependent (effectively random
+    // on ext4), and the safeLimit cap can be exhausted before recent activity is
+    // reached.
+    const projectStats = await Promise.all(projectDirsRaw.map(async (d) => {
+      try {
+        const s = await fs.stat(path.join(claudeDir, d.name));
+        return { dir: d, mtimeMs: s.mtimeMs };
+      } catch {
+        return { dir: d, mtimeMs: 0 };
+      }
+    }));
+    projectStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
+    const projectDirs = projectStats.map(x => x.dir);
     let scannedProjects = 0;
     const totalProjects = projectDirs.length;
 
@@ -1982,9 +2011,21 @@ async function searchConversations(query, limit = 50, onProjectResult = null, si
         continue;
       }
 
-      const jsonlFiles = files.filter(
+      const jsonlFilesRaw = files.filter(
         file => file.endsWith('.jsonl') && !file.startsWith('agent-')
       );
+      // Sort sessions newest-first within the project so the safeLimit cap
+      // doesn't bury recent sessions behind dozens of older ones.
+      const jsonlStats = await Promise.all(jsonlFilesRaw.map(async (f) => {
+        try {
+          const s = await fs.stat(path.join(projectDir, f));
+          return { file: f, mtimeMs: s.mtimeMs };
+        } catch {
+          return { file: f, mtimeMs: 0 };
+        }
+      }));
+      jsonlStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
+      const jsonlFiles = jsonlStats.map(x => x.file);
 
       const projectResult = {
         projectName,
@@ -2070,7 +2111,7 @@ async function searchConversations(query, limit = 50, onProjectResult = null, si
             }
 
             const matches = sessionMatches.get(sessionId);
-            if (matches.length < 2) {
+            if (matches.length < 1) {
               const { snippet, highlights } = buildSnippet(text, textLower);
               matches.push({
                 role: entry.message.role,
