@@ -38,7 +38,7 @@ export type UseTranscriptSearchResult = {
 };
 
 const DEFAULT_MIN_CHARS = 3;
-const DEFAULT_LIMIT = 20;
+const DEFAULT_LIMIT = 200;
 const DEBOUNCE_MS = 400;
 
 export function useTranscriptSearch({

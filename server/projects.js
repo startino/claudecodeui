@@ -474,7 +474,7 @@ async function getProjects(progressCallback = null) {
 
       // Try to get sessions for this project (just first 5 for performance)
       try {
-        const sessionResult = await getSessions(entry.name, 5, 0);
+        const sessionResult = await getSessions(entry.name, 50, 0);
         project.sessions = sessionResult.sessions || [];
         project.sessionMeta = {
           hasMore: sessionResult.hasMore,
@@ -1876,7 +1876,7 @@ async function deleteCodexSession(sessionId) {
 
 async function searchConversations(query, limit = 50, onProjectResult = null, signal = null) {
   const safeQuery = typeof query === 'string' ? query.trim() : '';
-  const safeLimit = Math.max(1, Math.min(Number.isFinite(limit) ? limit : 50, 200));
+  const safeLimit = Math.max(1, Math.min(Number.isFinite(limit) ? limit : 200, 2000));
   const claudeDir = path.join(os.homedir(), '.claude', 'projects');
   const config = await loadProjectConfig();
   const results = [];

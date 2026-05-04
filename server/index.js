@@ -545,7 +545,7 @@ app.delete('/api/projects/:projectName', authenticateToken, async (req, res) => 
 app.get('/api/search/conversations', authenticateToken, async (req, res) => {
     const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
     const parsedLimit = Number.parseInt(String(req.query.limit), 10);
-    const limit = Number.isNaN(parsedLimit) ? 50 : Math.max(1, Math.min(parsedLimit, 100));
+    const limit = Number.isNaN(parsedLimit) ? 200 : Math.max(1, Math.min(parsedLimit, 1000));
 
     if (query.length < 2) {
         return res.status(400).json({ error: 'Query must be at least 2 characters' });
