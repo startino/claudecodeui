@@ -376,17 +376,25 @@ export function useChatSessionState({
       setCanAbortSession(false);
     }
 
-    // Reset pagination/scroll state
-    messagesOffsetRef.current = 0;
-    setVisibleMessageCount(INITIAL_VISIBLE_MESSAGES);
-    setAllMessagesLoaded(false);
-    allMessagesLoadedRef.current = false;
-    setIsLoadingAllMessages(false);
-    setLoadAllJustFinished(false);
-    setShowLoadAllOverlay(false);
-    setViewHiddenCount(0);
-    if (loadAllOverlayTimerRef.current) clearTimeout(loadAllOverlayTimerRef.current);
-    if (loadAllFinishedTimerRef.current) clearTimeout(loadAllFinishedTimerRef.current);
+    // Reset pagination/scroll state only when actually switching sessions.
+    // This effect re-fires whenever selectedProject / ws / sessionStore identity
+    // changes — even with the same session — and resetting visibleMessageCount
+    // back to the small initial page during a refresh would temporarily prune
+    // the rendered DOM down from the fully-backfilled list, yanking the
+    // viewport upward as content disappears from above the scroll position.
+    const isSwitchingSessions = currentSessionId !== selectedSession.id;
+    if (isSwitchingSessions) {
+      messagesOffsetRef.current = 0;
+      setVisibleMessageCount(INITIAL_VISIBLE_MESSAGES);
+      setAllMessagesLoaded(false);
+      allMessagesLoadedRef.current = false;
+      setIsLoadingAllMessages(false);
+      setLoadAllJustFinished(false);
+      setShowLoadAllOverlay(false);
+      setViewHiddenCount(0);
+      if (loadAllOverlayTimerRef.current) clearTimeout(loadAllOverlayTimerRef.current);
+      if (loadAllFinishedTimerRef.current) clearTimeout(loadAllFinishedTimerRef.current);
+    }
 
     // Seed pagination/token state from cache if warm; otherwise reset.
     if (isWarm && cachedSlot) {
