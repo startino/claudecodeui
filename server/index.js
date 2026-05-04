@@ -1422,16 +1422,46 @@ class WebSocketWriter {
         this.sessionId = null;
         this.userId = userId;
         this.isWebSocketWriter = true;  // Marker for transport detection
+        // Buffer for frames the SDK tried to emit while the underlying socket
+        // was not OPEN (e.g. the user's browser hit a proxy idle-timeout and
+        // is between the close and the auto-reconnect 3s later). Without this,
+        // anything the SDK emits during that gap is silently dropped — most
+        // critically the `complete` frame, which left the chat banner stuck
+        // on "Processing..." forever even though the SDK had exited cleanly.
+        // Capped to avoid unbounded growth on fully-disconnected clients.
+        this.pendingFrames = [];
     }
 
     send(data) {
-        if (this.ws.readyState === 1) { // WebSocket.OPEN
-            this.ws.send(JSON.stringify(data));
+        const payload = JSON.stringify(data);
+        if (this.ws && this.ws.readyState === 1) { // WebSocket.OPEN
+            this.ws.send(payload);
+            return;
+        }
+        // Socket not open — queue for delivery when updateWebSocket() swaps in
+        // a fresh, open socket via reconnectSessionWriter. Cap at 500 frames
+        // (~a few hundred KB worst case) so a never-returning client doesn't
+        // grow the buffer without bound.
+        if (this.pendingFrames.length < 500) {
+            this.pendingFrames.push(payload);
         }
     }
 
     updateWebSocket(newRawWs) {
         this.ws = newRawWs;
+        // Flush any frames that the SDK emitted while the previous socket was
+        // closed. These include `complete`, `permission_request`, `tool_use`,
+        // etc. — events that, if dropped, leave the UI in an inconsistent
+        // state with no way to recover.
+        if (this.pendingFrames.length && newRawWs && newRawWs.readyState === 1) {
+            const queued = this.pendingFrames;
+            this.pendingFrames = [];
+            for (const frame of queued) {
+                try { newRawWs.send(frame); } catch (err) {
+                    console.warn('[WebSocketWriter] Failed to flush pending frame:', err?.message || err);
+                }
+            }
+        }
     }
 
     setSessionId(sessionId) {
@@ -1538,11 +1568,12 @@ function handleChatConnection(ws, request) {
                 } else {
                     // Use Claude Agents SDK
                     isActive = isClaudeSDKSessionActive(sessionId);
-                    if (isActive) {
-                        // Reconnect the session's writer to the new WebSocket so
-                        // subsequent SDK output flows to the refreshed client.
-                        reconnectSessionWriter(sessionId, ws);
-                    }
+                    // Always attempt reconnect: when the session is active this
+                    // swaps the writer so further output flows to the new ws;
+                    // when the session has just finished but its `complete` /
+                    // `error` frame is still buffered in a retired writer,
+                    // this replays those frames to unstick the chat banner.
+                    reconnectSessionWriter(sessionId, ws);
                 }
 
                 writer.send({

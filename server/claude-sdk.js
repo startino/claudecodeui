@@ -260,6 +260,39 @@ function removeSession(sessionId) {
 }
 
 /**
+ * Writers kept around for ~30s after their session has finished, so a client
+ * that briefly disconnected (proxy idle, page nav) can still pick up the
+ * `complete` frame the SDK emitted into the (then-closed) socket. Without
+ * this, the chat UI stayed pinned to "Processing..." forever — see the
+ * WebSocketWriter buffer in server/index.js for the producer side.
+ */
+const RETIRED_WRITER_TTL_MS = 30_000;
+const retiredWriters = new Map(); // sessionId -> { writer, expiresAt, timer }
+
+function retireWriter(sessionId, writer) {
+  if (!sessionId || !writer) return;
+  if (!Array.isArray(writer.pendingFrames) || writer.pendingFrames.length === 0) {
+    // Nothing to replay — no point keeping the writer around.
+    return;
+  }
+  // Replace any prior retiree for this id (shouldn't happen, but be safe).
+  const existing = retiredWriters.get(sessionId);
+  if (existing?.timer) clearTimeout(existing.timer);
+  const timer = setTimeout(() => {
+    retiredWriters.delete(sessionId);
+  }, RETIRED_WRITER_TTL_MS);
+  retiredWriters.set(sessionId, { writer, expiresAt: Date.now() + RETIRED_WRITER_TTL_MS, timer });
+}
+
+function takeRetiredWriter(sessionId) {
+  const entry = retiredWriters.get(sessionId);
+  if (!entry) return null;
+  if (entry.timer) clearTimeout(entry.timer);
+  retiredWriters.delete(sessionId);
+  return entry.writer;
+}
+
+/**
  * Gets a session from the active sessions map
  * @param {string} sessionId - Session identifier
  * @returns {Object|undefined} Session data or undefined
@@ -877,6 +910,12 @@ async function queryClaudeSDK(command, options = {}, ws) {
         sessionName: sessionSummary,
         stopReason: lastStopInfo?.premature ? 'premature' : 'completed'
       });
+      // If the client was disconnected while the loop ran, the `complete`
+      // frame above was queued in the writer's pendingFrames buffer. Hold the
+      // writer aside for a short grace period so a reconnect within 30s can
+      // still replay the buffered frames — otherwise the UI sits stuck on
+      // "Processing..." forever even though the SDK exited cleanly.
+      retireWriter(capturedSessionId, ws);
     }
 
   } catch (error) {
@@ -905,6 +944,9 @@ async function queryClaudeSDK(command, options = {}, ws) {
       sessionName: sessionSummary,
       error
     });
+    // Same grace-period replay as the success path: if the client was
+    // disconnected, the `error` frame above is buffered for replay on reconnect.
+    retireWriter(capturedSessionId, ws);
   }
 }
 
@@ -955,7 +997,7 @@ async function abortClaudeSDKSession(sessionId) {
  */
 function isClaudeSDKSessionActive(sessionId) {
   const session = getSession(sessionId);
-  return session && session.status === 'active';
+  return !!(session && session.status === 'active');
 }
 
 /**
@@ -991,15 +1033,48 @@ function getPendingApprovalsForSession(sessionId) {
 /**
  * Reconnect a session's WebSocketWriter to a new raw WebSocket.
  * Called when client reconnects (e.g. page refresh) while SDK is still running.
+ *
+ * Also re-emits any pending permission requests for this session through the
+ * new writer. Without this, a `permission_request` (e.g. AskUserQuestion) that
+ * the SDK fired while the previous WS was closed is silently lost — see
+ * WebSocketWriter.send() in server/index.js, which drops messages when
+ * readyState !== OPEN. The original symptom was a chat stuck on "Processing..."
+ * with no UI prompt and the SDK loop hung forever in waitForToolApproval
+ * (timeoutMs: 0 for interactive tools).
+ *
  * @param {string} sessionId - The session ID
  * @param {Object} newRawWs - The new raw WebSocket connection
  * @returns {boolean} True if writer was successfully reconnected
  */
 function reconnectSessionWriter(sessionId, newRawWs) {
   const session = getSession(sessionId);
-  if (!session?.writer?.updateWebSocket) return false;
+  if (!session?.writer?.updateWebSocket) {
+    // Session is already gone, but the SDK may have emitted final frames
+    // (`complete` / `error`) into the disconnected writer. Replay them now
+    // from the retired-writer cache so the new client unsticks.
+    const retired = takeRetiredWriter(sessionId);
+    if (retired?.updateWebSocket) {
+      retired.updateWebSocket(newRawWs);
+      console.log(`[RECONNECT] Replayed retired writer for session ${sessionId} (${retired.pendingFrames?.length ?? 0} frames flushed)`);
+      return true;
+    }
+    return false;
+  }
   session.writer.updateWebSocket(newRawWs);
   console.log(`[RECONNECT] Writer swapped for session ${sessionId}`);
+
+  // The buffered-frame flush in updateWebSocket() will replay any
+  // permission_request frames that were emitted while the previous socket
+  // was closed, so we no longer need an explicit re-emit loop here. We do
+  // surface the count in logs as a sanity check.
+  try {
+    const pending = getPendingApprovalsForSession(sessionId);
+    if (pending.length > 0) {
+      console.log(`[RECONNECT] ${pending.length} pending permission request(s) for session ${sessionId} (replayed via buffered frames)`);
+    }
+  } catch (err) {
+    console.warn('[RECONNECT] Failed to inspect pending permissions:', err?.message || err);
+  }
   return true;
 }
 
