@@ -284,6 +284,21 @@ export function useChatComposerState({
           break;
 
         case 'compact': {
+          // Slash-autocomplete entry point. Mirror the triggerCompact guard:
+          // if Claude is mid-turn, surface feedback instead of pushing the
+          // literal "/compact" through the bypass path. The handler-level
+          // guard duplicates triggerCompact's defense so both UI entry points
+          // (pie click + slash menu) land in the same place.
+          if (isLoading) {
+            addMessage({
+              type: 'assistant',
+              content: '_Cannot compact while Claude is responding. Wait for the current turn to finish._',
+              timestamp: Date.now(),
+            });
+            setInput('');
+            inputValueRef.current = '';
+            break;
+          }
           const instructions = data?.instructions || '';
           const promptText = instructions ? `/compact ${instructions}` : '/compact';
           setInput(promptText);
@@ -318,7 +333,7 @@ export function useChatComposerState({
           console.warn('Unknown built-in command action:', action);
       }
     },
-    [onFileOpen, onShowSettings, addMessage, clearMessages, rewindMessages],
+    [onFileOpen, onShowSettings, addMessage, clearMessages, rewindMessages, isLoading],
   );
 
   const handleCustomCommand = useCallback(async (result: CommandExecutionResult) => {
@@ -1238,6 +1253,11 @@ export function useChatComposerState({
   const triggerCompact = useCallback(() => {
     if (provider !== 'claude') return;
     if (!selectedProject) return;
+    // Refuse to fire while Claude is mid-turn. Without this, the bypass flag
+    // and the queued "/compact" text race through handleSubmit's loading-queue
+    // branch and end up corrupting the next normal submit. The token-pie UI
+    // surfaces a disabled affordance so the silent no-op still has feedback.
+    if (isLoading) return;
     setInput('/compact');
     inputValueRef.current = '/compact';
     bypassSlashInterceptRef.current = true;
@@ -1246,7 +1266,7 @@ export function useChatComposerState({
         handleSubmitRef.current(createFakeSubmitEvent());
       }
     }, 0);
-  }, [provider, selectedProject]);
+  }, [provider, selectedProject, isLoading]);
 
   const [isInputFocused, setIsInputFocused] = useState(false);
 
