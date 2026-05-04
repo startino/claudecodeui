@@ -3,6 +3,7 @@ type TokenUsagePieProps = {
   total: number;
   onClick?: () => void;
   clickTitle?: string;
+  disabled?: boolean;
 };
 
 function formatTokens(n: number): string {
@@ -11,7 +12,7 @@ function formatTokens(n: number): string {
   return `${n}`;
 }
 
-export default function TokenUsagePie({ used, total, onClick, clickTitle }: TokenUsagePieProps) {
+export default function TokenUsagePie({ used, total, onClick, clickTitle, disabled }: TokenUsagePieProps) {
   if (used == null || total == null || total <= 0) return null;
 
   const percentage = Math.min(100, (used / total) * 100);
@@ -24,11 +25,21 @@ export default function TokenUsagePie({ used, total, onClick, clickTitle }: Toke
     percentage < 50 ? '#3b82f6' : percentage < 75 ? '#f59e0b' : '#ef4444';
 
   const baseTitle = `${used.toLocaleString()} / ${total.toLocaleString()} tokens`;
-  const title = onClick && clickTitle ? `${baseTitle}\n${clickTitle}` : baseTitle;
+  const titleParts: string[] = [baseTitle];
+  if (onClick) {
+    if (disabled) {
+      titleParts.push('Unavailable while Claude is responding');
+    } else if (clickTitle) {
+      titleParts.push(clickTitle);
+    }
+  }
+  const title = titleParts.join('\n');
 
-  const interactiveClass = onClick
+  const interactiveClass = onClick && !disabled
     ? 'cursor-pointer rounded-md px-1 -mx-1 transition-colors hover:bg-foreground/5 hover:text-foreground'
-    : '';
+    : onClick && disabled
+      ? 'rounded-md px-1 -mx-1 opacity-60 cursor-not-allowed'
+      : '';
 
   const inner = (
     <>
@@ -68,6 +79,7 @@ export default function TokenUsagePie({ used, total, onClick, clickTitle }: Toke
       <button
         type="button"
         onClick={onClick}
+        disabled={disabled}
         className={`flex items-center gap-1.5 text-[10px] text-muted-foreground ${interactiveClass}`}
         title={title}
       >
