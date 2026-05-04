@@ -44,7 +44,9 @@
     "prepare": "husky",
     "update:platform": "./update-platform.sh",
     "dev:test": "SERVER_PORT=3099 VITE_PORT=5199 DATABASE_PATH=./.e2e/test.db BASE_PATH= concurrently --kill-others \"npm run server:dev\" \"npm run client\"",
-    "e2e:smoke": "playwright test e2e/smoke"
+    "e2e:smoke": "playwright test e2e/smoke",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "claude code",
@@ -129,6 +131,8 @@
     "@eslint/js": "^9.39.3",
     "@playwright/test": "^1.59.1",
     "@release-it/conventional-changelog": "^10.0.5",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cross-spawn": "^6.0.6",
     "@types/express": "^5.0.6",
@@ -150,6 +154,7 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^17.4.0",
     "husky": "^9.1.7",
+    "jsdom": "^29.1.1",
     "lint-staged": "^16.3.2",
     "node-gyp": "^10.0.0",
     "postcss": "^8.4.32",
@@ -160,7 +165,8 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^4.1.5"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": "eslint",
