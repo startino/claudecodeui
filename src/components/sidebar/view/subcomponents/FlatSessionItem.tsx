@@ -27,7 +27,7 @@ function splitPath(fullPath: string): { prefix: string; leaf: string } {
   }
   const first = parts[0];
   const parent = parts[parts.length - 2];
-  return { prefix: `${leading}${first}/.../${parent}`, leaf: `/${last}` };
+  return { prefix: `${leading}${first}/...`, leaf: `/${parent}/${last}` };
 }
 
 const STATUS_TINT_BG: Record<FlatSession['__status'], string | null> = {
