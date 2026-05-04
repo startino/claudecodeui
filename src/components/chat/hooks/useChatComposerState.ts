@@ -608,6 +608,12 @@ export function useChatComposerState({
 
       // Queue text-only messages while Claude is responding
       if (isLoading && currentInput.trim() && !hasAttachments) {
+        // Defense in depth: never let the slash-bypass flag leak past a
+        // queue early-return. If a future caller forgets the isLoading
+        // guard, the queued text would otherwise be replayed with bypass
+        // still set, silently skipping the slash-command intercept on the
+        // next submission.
+        bypassSlashInterceptRef.current = false;
         queuedMessageRef.current = currentInput;
         queuedSessionIdRef.current = currentSessionId;
         setQueuedMessage(currentInput);
