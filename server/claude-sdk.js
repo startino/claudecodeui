@@ -723,6 +723,7 @@ async function queryClaudeSDK(command, options = {}, ws) {
 
       let lastResultMessage = null;
       let lastAssistantStopReason = null;
+      let deferredToolUse = null;
       let messagesReceived = 0;
       const attemptStartedAt = Date.now();
 
@@ -772,11 +773,19 @@ async function queryClaudeSDK(command, options = {}, ws) {
             num_turns: message.num_turns,
             duration_ms: message.duration_ms,
             duration_api_ms: message.duration_api_ms,
+            terminal_reason: message.terminal_reason,
             lastAssistantStopReason,
           });
           const tokenBudgetData = extractTokenBudget(message);
           if (tokenBudgetData) {
             ws.send(createNormalizedMessage({ kind: 'status', text: 'token_budget', tokenBudget: tokenBudgetData, sessionId: capturedSessionId || sessionId || null, provider: 'claude' }));
+          }
+          // The turn ended waiting on a deferred tool (Monitor, ScheduleWakeup, ToolSearch, etc.).
+          // The SDK keeps the CLI subprocess alive for the deferred handler, so the iterator
+          // never closes on its own — break here so `complete` fires and the UI unsticks.
+          if (message.terminal_reason === 'tool_deferred' || message.deferred_tool_use) {
+            deferredToolUse = message.deferred_tool_use ?? null;
+            break;
           }
         }
       }
@@ -797,6 +806,8 @@ async function queryClaudeSDK(command, options = {}, ws) {
         premature,
         subtype: lastResultMessage?.subtype ?? null,
         stopReason: lastAssistantStopReason,
+        terminalReason: lastResultMessage?.terminal_reason ?? null,
+        deferredToolUse,
         numTurns: lastResultMessage?.num_turns ?? null,
         durationMs: lastResultMessage?.duration_ms ?? null,
         isError: lastResultMessage?.is_error ?? false,
@@ -853,6 +864,8 @@ async function queryClaudeSDK(command, options = {}, ws) {
         premature: lastStopInfo?.premature ?? false,
         stopReason: lastStopInfo?.stopReason ?? null,
         subtype: lastStopInfo?.subtype ?? null,
+        terminalReason: lastStopInfo?.terminalReason ?? null,
+        deferredToolUse: lastStopInfo?.deferredToolUse ?? null,
         numTurns: lastStopInfo?.numTurns ?? null,
         durationMs: lastStopInfo?.durationMs ?? null,
         autoResumeAttempts,
