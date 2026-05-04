@@ -546,7 +546,8 @@ export default function ChatComposer({
                   : parseInt(import.meta.env.VITE_CONTEXT_WINDOW) || 1_000_000)
               }
               onClick={provider === 'claude' && onCompact ? onCompact : undefined}
-              clickTitle={provider === 'claude' ? 'Click to /compact' : undefined}
+              clickTitle={provider === 'claude' && onCompact ? 'Click to /compact' : undefined}
+              disabled={isLoading}
             />
             <div
               className={`hidden text-[10px] text-muted-foreground/40 transition-opacity duration-200 lg:block ${
