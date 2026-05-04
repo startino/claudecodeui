@@ -14,6 +14,17 @@ type FlatSessionItemProps = {
   showHotkey?: boolean;
 };
 
+function prunePath(fullPath: string): string {
+  const p = fullPath.replace(/^\/home\/[^/]+/, '~');
+  const leading = p.startsWith('/') ? '/' : '';
+  const parts = p.split('/').filter(Boolean);
+  if (parts.length < 4) return p;
+  const first = parts[0].slice(0, 3);
+  const secondLast = parts[parts.length - 2].slice(0, 3);
+  const last = parts[parts.length - 1];
+  return `${leading}${first}/.../${secondLast}/${last}`;
+}
+
 function StatusDot({ status }: { status: FlatSession['__status'] }) {
   const colorClass = {
     running: 'bg-status-running',
@@ -72,7 +83,7 @@ export default function FlatSessionItem({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 truncate font-mono text-[10px] leading-tight text-muted-foreground/70">
           <span className="truncate" title={session.__projectFullPath}>
-            {session.__projectFullPath} · {timeAgo}
+            {prunePath(session.__projectFullPath)} · {timeAgo}
           </span>
           {isArchived && (
             <span
