@@ -307,25 +307,29 @@ function Sidebar({
       className={`flex h-full ${isMobile ? 'flex-col' : 'flex-row'} bg-background/80 backdrop-blur-sm md:select-none`}
     >
       {!isMobile && (
-        <ProjectRail
-          railItems={railItems}
-          activeProjectFilter={activeProjectFilter}
-          totalAttentionCount={totalAttentionCount}
-          onProjectFilter={setActiveProjectFilter}
-          getColor={getColor}
-          setColor={setColor}
-          isProjectArchived={isProjectArchived}
-          onToggleArchivedProject={(name) => {
-            toggleArchivedProject(name);
-            if (activeProjectFilter === name) {
-              setActiveProjectFilter(null);
-            }
-          }}
-          onCreateProject={() => setShowNewProject(true)}
-          onIconChanged={refreshProjects}
-        />
+        <div className="group/rail relative h-full w-1.5 flex-shrink-0">
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-30 h-full -translate-x-full opacity-0 transition-[transform,opacity] duration-150 ease-out group-hover/rail:pointer-events-auto group-hover/rail:translate-x-0 group-hover/rail:opacity-100 group-hover/rail:shadow-xl">
+            <ProjectRail
+              railItems={railItems}
+              activeProjectFilter={activeProjectFilter}
+              totalAttentionCount={totalAttentionCount}
+              onProjectFilter={setActiveProjectFilter}
+              getColor={getColor}
+              setColor={setColor}
+              isProjectArchived={isProjectArchived}
+              onToggleArchivedProject={(name) => {
+                toggleArchivedProject(name);
+                if (activeProjectFilter === name) {
+                  setActiveProjectFilter(null);
+                }
+              }}
+              onCreateProject={() => setShowNewProject(true)}
+              onIconChanged={refreshProjects}
+            />
+          </div>
+        </div>
       )}
-      <div className={`flex min-h-0 flex-1 flex-col ${!isMobile ? 'w-72' : ''}`}>
+      <div className={`flex min-h-0 flex-1 flex-col ${!isMobile ? 'w-64' : ''}`}>
         {isMobile && railItems.length > 0 && (
           <MobileProjectFilter
             items={railItems.filter((item) => !isProjectArchived(item.name))}

@@ -25,28 +25,13 @@ function prunePath(fullPath: string): string {
   return `${leading}${first}/.../${secondLast}/${last}`;
 }
 
-function StatusDot({ status }: { status: FlatSession['__status'] }) {
-  const colorClass = {
-    running: 'bg-status-running',
-    waiting: 'bg-status-waiting',
-    error: 'bg-status-error',
-    idle: 'bg-status-idle',
-    done: 'bg-status-done',
-  }[status];
-
-  const shouldPulse = status === 'running' || status === 'waiting';
-
-  return (
-    <span className="relative inline-flex h-[7px] w-[7px] flex-shrink-0">
-      <span className={`h-[7px] w-[7px] rounded-full ${colorClass}`} />
-      {shouldPulse && (
-        <span
-          className={`absolute inset-0 animate-status-pulse rounded-full ${colorClass}`}
-        />
-      )}
-    </span>
-  );
-}
+const STATUS_COLOR: Record<FlatSession['__status'], string | null> = {
+  running: 'hsl(var(--status-running))',
+  waiting: 'hsl(var(--status-waiting))',
+  error: 'hsl(var(--status-error))',
+  idle: null,
+  done: null,
+};
 
 export default function FlatSessionItem({
   session,
@@ -61,24 +46,30 @@ export default function FlatSessionItem({
 }: FlatSessionItemProps) {
   const [hover, setHover] = useState(false);
   const isAttention = session.__status === 'waiting' || session.__status === 'error';
+  const shouldPulse = session.__status === 'running' || session.__status === 'waiting';
+  const statusColor = STATUS_COLOR[session.__status];
+
+  const borderLeftColor = isSelected
+    ? 'var(--project-accent)'
+    : (statusColor ?? 'transparent');
 
   return (
     <button
       onClick={(e) => onSelect(e)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors ${
-        isSelected ? 'bg-accent pl-2' : hover ? 'bg-accent/50' : ''
-      } ${isSelected ? 'border-l-2' : 'border-l-2 border-l-transparent'} ${
-        isArchived ? 'opacity-55' : ''
-      }`}
-      style={
-        isSelected
-          ? { borderLeftColor: 'var(--project-accent)' }
-          : undefined
-      }
+      className={`relative flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors border-l-2 ${
+        isSelected ? 'bg-accent' : hover ? 'bg-accent/50' : ''
+      } ${isArchived ? 'opacity-55' : ''}`}
+      style={{ borderLeftColor }}
     >
-      <StatusDot status={session.__status} />
+      {shouldPulse && !isSelected && statusColor && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -left-[2px] inset-y-2 w-[2px] animate-status-pulse rounded-r-sm"
+          style={{ backgroundColor: statusColor }}
+        />
+      )}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 truncate font-mono text-[10px] leading-tight text-muted-foreground/70">

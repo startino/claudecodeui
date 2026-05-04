@@ -21,11 +21,6 @@ type SidebarFooterV4Props = {
 
 type ProviderId = 'claude' | 'codex';
 
-const PROVIDER_DOT_COLOR: Record<ProviderId, string> = {
-  claude: '#d97706',
-  codex: '#22c55e',
-};
-
 const PROVIDER_LABEL: Record<ProviderId, string> = {
   claude: 'Claude',
   codex: 'Codex',
@@ -79,54 +74,10 @@ export default function SidebarFooterV4({
 
   return (
     <div className="flex flex-col gap-1.5 border-t border-border/60 px-3 py-2">
-      <div className="flex items-center gap-2">
-        <span
-          aria-hidden
-          className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-          style={{ background: PROVIDER_DOT_COLOR[activeProvider] }}
-        />
+      <div className="flex items-center">
         <IdentityLabel snapshot={activeSnapshot} />
-        <Tooltip content="Refresh projects & usage" position="top">
-          <button
-            onClick={handleRefreshAll}
-            disabled={isRefreshing}
-            className="flex rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Refresh projects"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
-        </Tooltip>
-        <Tooltip content={`Keyboard shortcuts (${MOD_KEY}K for palette)`} position="top">
-          <button
-            onClick={onShowShortcuts}
-            className="flex rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Keyboard shortcuts"
-          >
-            <Keyboard className="h-3.5 w-3.5" />
-          </button>
-        </Tooltip>
-        {hasSavedLayout && onRestoreLayout && (
-          <Tooltip content="Restore last split-screen layout" position="top">
-            <button
-              onClick={onRestoreLayout}
-              className="flex rounded p-1 text-amber-500 transition-colors hover:text-amber-400"
-              aria-label="Restore saved layout"
-            >
-              <LayoutTemplate className="h-3.5 w-3.5" />
-            </button>
-          </Tooltip>
-        )}
-        <Tooltip content="Settings" position="top">
-          <button
-            onClick={onShowSettings}
-            className="flex rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Settings"
-          >
-            <Settings className="h-3.5 w-3.5" />
-          </button>
-        </Tooltip>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         {otherAvailable && (
           <ProviderPill
             provider={otherProvider}
@@ -135,8 +86,49 @@ export default function SidebarFooterV4({
             onClick={() => setPinnedProvider(otherProvider)}
           />
         )}
-        <UsageRow snapshot={activeSnapshot} />
+        <div className="flex flex-1 items-center justify-end gap-0.5">
+          <Tooltip content="Refresh projects & usage" position="top">
+            <button
+              onClick={handleRefreshAll}
+              disabled={isRefreshing}
+              className="flex rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="Refresh projects"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+          </Tooltip>
+          <Tooltip content={`Keyboard shortcuts (${MOD_KEY}K for palette)`} position="top">
+            <button
+              onClick={onShowShortcuts}
+              className="flex rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Keyboard shortcuts"
+            >
+              <Keyboard className="h-3.5 w-3.5" />
+            </button>
+          </Tooltip>
+          {hasSavedLayout && onRestoreLayout && (
+            <Tooltip content="Restore last split-screen layout" position="top">
+              <button
+                onClick={onRestoreLayout}
+                className="flex rounded p-1 text-amber-500 transition-colors hover:text-amber-400"
+                aria-label="Restore saved layout"
+              >
+                <LayoutTemplate className="h-3.5 w-3.5" />
+              </button>
+            </Tooltip>
+          )}
+          <Tooltip content="Settings" position="top">
+            <button
+              onClick={onShowSettings}
+              className="flex rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Settings"
+            >
+              <Settings className="h-3.5 w-3.5" />
+            </button>
+          </Tooltip>
+        </div>
       </div>
+      <UsageRow snapshot={activeSnapshot} />
     </div>
   );
 }
@@ -319,14 +311,9 @@ function ProviderPill({
         onFocus={onEnter}
         onBlur={onLeave}
         onClick={onClick}
-        className="flex h-5 items-center gap-1 rounded-full border border-border/60 bg-background/40 px-1.5 text-[9px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-border hover:text-foreground"
+        className="flex h-5 items-center rounded-full border border-border/60 bg-background/40 px-1.5 text-[9px] uppercase tracking-wider text-muted-foreground transition-colors hover:border-border hover:text-foreground"
         aria-label={`Switch default to ${PROVIDER_LABEL[provider]}`}
       >
-        <span
-          aria-hidden
-          className="h-1.5 w-1.5 rounded-full"
-          style={{ background: PROVIDER_DOT_COLOR[provider] }}
-        />
         <span>{PROVIDER_LABEL[provider]}</span>
       </button>
     </Tooltip>
