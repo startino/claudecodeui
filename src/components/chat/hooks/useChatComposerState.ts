@@ -300,6 +300,18 @@ export function useChatComposerState({
             break;
           }
           const instructions = data?.instructions || '';
+          // Surface the server's status message (e.g. "Compacting
+          // conversation...") in the chat stream so the user has feedback
+          // before the SDK's compaction summary lands. Wrapped in
+          // underscores so the markdown renderer styles it as muted
+          // emphasis, matching the cost/status/rewind pattern.
+          if (data?.message) {
+            addMessage({
+              type: 'assistant',
+              content: `_${data.message}_`,
+              timestamp: Date.now(),
+            });
+          }
           const promptText = instructions ? `/compact ${instructions}` : '/compact';
           setInput(promptText);
           inputValueRef.current = promptText;
