@@ -19,15 +19,15 @@ function splitPath(fullPath: string): { prefix: string; leaf: string } {
   const leading = p.startsWith('/') ? '/' : '';
   const parts = p.split('/').filter(Boolean);
   if (parts.length === 0) return { prefix: '', leaf: p };
-  const leaf = parts[parts.length - 1];
-  if (parts.length === 1) return { prefix: leading, leaf };
+  const last = parts[parts.length - 1];
+  if (parts.length === 1) return { prefix: '', leaf: `${leading}${last}` };
   if (parts.length <= 3) {
     const middle = parts.slice(0, -1).join('/');
-    return { prefix: `${leading}${middle}/`, leaf };
+    return { prefix: `${leading}${middle}`, leaf: `/${last}` };
   }
   const first = parts[0];
   const parent = parts[parts.length - 2];
-  return { prefix: `${leading}${first}/.../${parent}/`, leaf };
+  return { prefix: `${leading}${first}/.../${parent}`, leaf: `/${last}` };
 }
 
 const STATUS_TINT_BG: Record<FlatSession['__status'], string | null> = {

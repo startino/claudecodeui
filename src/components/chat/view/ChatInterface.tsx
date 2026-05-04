@@ -46,6 +46,7 @@ function ChatInterface({
   autoExpandTools,
   showRawParameters,
   showThinking,
+  chatRenderMode,
   autoScrollToBottom,
   sendByCtrlEnter,
   externalMessageUpdate,

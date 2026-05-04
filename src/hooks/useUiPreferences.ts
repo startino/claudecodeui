@@ -1,5 +1,9 @@
 import { useEffect, useReducer, useRef } from 'react';
 
+export type ChatRenderMode = 'lean' | 'medium' | 'debugging';
+
+const CHAT_RENDER_MODES: ChatRenderMode[] = ['lean', 'medium', 'debugging'];
+
 type UiPreferences = {
   autoExpandTools: boolean;
   showRawParameters: boolean;
@@ -7,6 +11,7 @@ type UiPreferences = {
   autoScrollToBottom: boolean;
   sendByCtrlEnter: boolean;
   sidebarVisible: boolean;
+  chatRenderMode: ChatRenderMode;
 };
 
 type UiPreferenceKey = keyof UiPreferences;
@@ -39,6 +44,7 @@ const DEFAULTS: UiPreferences = {
   autoScrollToBottom: true,
   sendByCtrlEnter: false,
   sidebarVisible: true,
+  chatRenderMode: 'medium',
 };
 
 const PREFERENCE_KEYS = Object.keys(DEFAULTS) as UiPreferenceKey[];
@@ -62,6 +68,23 @@ const parseBoolean = (value: unknown, fallback: boolean): boolean => {
   }
 
   return fallback;
+};
+
+const isChatRenderMode = (value: unknown): value is ChatRenderMode =>
+  typeof value === 'string' && (CHAT_RENDER_MODES as string[]).includes(value);
+
+const parseChatRenderMode = (value: unknown, fallback: ChatRenderMode): ChatRenderMode =>
+  isChatRenderMode(value) ? value : fallback;
+
+const parsePreferenceValue = <K extends UiPreferenceKey>(
+  key: K,
+  value: unknown,
+  fallback: UiPreferences[K],
+): UiPreferences[K] => {
+  if (key === 'chatRenderMode') {
+    return parseChatRenderMode(value, fallback as ChatRenderMode) as UiPreferences[K];
+  }
+  return parseBoolean(value, fallback as boolean) as UiPreferences[K];
 };
 
 const readLegacyPreference = (key: UiPreferenceKey, fallback: boolean): boolean => {
@@ -89,21 +112,28 @@ const readInitialPreferences = (storageKey: string): UiPreferences => {
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         const parsedRecord = parsed as Record<string, unknown>;
+        const next = { ...DEFAULTS };
 
-        return PREFERENCE_KEYS.reduce((acc, key) => {
-          acc[key] = parseBoolean(parsedRecord[key], DEFAULTS[key]);
-          return acc;
-        }, { ...DEFAULTS });
+        for (const key of PREFERENCE_KEYS) {
+          (next as Record<string, unknown>)[key] = parsePreferenceValue(key, parsedRecord[key], DEFAULTS[key]);
+        }
+
+        return next;
       }
     }
   } catch {
     // Fall back to legacy keys when unified key is missing or invalid.
   }
 
-  return PREFERENCE_KEYS.reduce((acc, key) => {
-    acc[key] = readLegacyPreference(key, DEFAULTS[key]);
-    return acc;
-  }, { ...DEFAULTS });
+  // Legacy single-key fallbacks only existed for the boolean prefs; chatRenderMode
+  // keeps its default when no unified payload is present.
+  const next = { ...DEFAULTS };
+  for (const key of PREFERENCE_KEYS) {
+    if (typeof DEFAULTS[key] === 'boolean') {
+      (next as Record<string, unknown>)[key] = readLegacyPreference(key, DEFAULTS[key] as boolean);
+    }
+  }
+  return next;
 };
 
 function reducer(state: UiPreferences, action: UiPreferencesAction): UiPreferences {
@@ -114,7 +144,7 @@ function reducer(state: UiPreferences, action: UiPreferencesAction): UiPreferenc
         return state;
       }
 
-      const nextValue = parseBoolean(value, state[key]);
+      const nextValue = parsePreferenceValue(key, value, state[key]);
       if (state[key] === nextValue) {
         return state;
       }
@@ -130,9 +160,9 @@ function reducer(state: UiPreferences, action: UiPreferencesAction): UiPreferenc
         if (!(key in updates)) continue;
 
         const value = updates[key];
-        const nextValue = parseBoolean(value, state[key]);
+        const nextValue = parsePreferenceValue(key, value, state[key]);
         if (nextState[key] !== nextValue) {
-          nextState[key] = nextValue;
+          (nextState as Record<string, unknown>)[key] = nextValue;
           changed = true;
         }
       }
