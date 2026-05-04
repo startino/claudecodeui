@@ -14,21 +14,41 @@ type FlatSessionItemProps = {
   showHotkey?: boolean;
 };
 
+const CONTAINER_SEGMENTS = new Set([
+  '~',
+  'home',
+  'repos',
+  'repositories',
+  'projects',
+  'project',
+  'src',
+  'code',
+  'dev',
+  'work',
+  'workspace',
+  'tmp',
+  'shared',
+  'Users',
+  'users',
+  'Documents',
+  'Desktop',
+]);
+
 function prunePath(fullPath: string): string {
   const p = fullPath.replace(/^\/home\/[^/]+/, '~');
-  const leading = p.startsWith('/') ? '/' : '';
   const parts = p.split('/').filter(Boolean);
-  if (parts.length < 4) return p;
-  const first = parts[0].slice(0, 3);
-  const secondLast = parts[parts.length - 2].slice(0, 3);
-  const last = parts[parts.length - 1];
-  return `${leading}${first}/.../${secondLast}/${last}`;
+  if (parts.length === 0) return p;
+  if (parts.length === 1) return parts[0];
+  const leaf = parts[parts.length - 1];
+  const parent = parts[parts.length - 2];
+  if (CONTAINER_SEGMENTS.has(parent)) return leaf;
+  return `${parent}/${leaf}`;
 }
 
-const STATUS_COLOR: Record<FlatSession['__status'], string | null> = {
-  running: 'hsl(var(--status-running))',
-  waiting: 'hsl(var(--status-waiting))',
-  error: 'hsl(var(--status-error))',
+const STATUS_TINT_BG: Record<FlatSession['__status'], string | null> = {
+  running: 'hsl(var(--status-running) / 0.10)',
+  waiting: 'hsl(var(--status-waiting) / 0.12)',
+  error: 'hsl(var(--status-error) / 0.12)',
   idle: null,
   done: null,
 };
@@ -46,31 +66,24 @@ export default function FlatSessionItem({
 }: FlatSessionItemProps) {
   const [hover, setHover] = useState(false);
   const isAttention = session.__status === 'waiting' || session.__status === 'error';
-  const shouldPulse = session.__status === 'running' || session.__status === 'waiting';
-  const statusColor = STATUS_COLOR[session.__status];
+  const statusTint = STATUS_TINT_BG[session.__status];
 
-  const borderLeftColor = isSelected
-    ? 'var(--project-accent)'
-    : (statusColor ?? 'transparent');
+  const useTokenBg = isSelected || hover;
+  const tokenBgClass = isSelected ? 'bg-accent' : hover ? 'bg-accent/50' : '';
 
   return (
     <button
       onClick={(e) => onSelect(e)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className={`relative flex w-full items-center gap-2 rounded-md px-2 py-2 text-left transition-colors border-l-2 ${
-        isSelected ? 'bg-accent' : hover ? 'bg-accent/50' : ''
-      } ${isArchived ? 'opacity-55' : ''}`}
-      style={{ borderLeftColor }}
+      className={`flex w-full items-center gap-2 rounded-md border-l-2 px-2 py-2 text-left transition-colors ${tokenBgClass} ${
+        isArchived ? 'opacity-55' : ''
+      }`}
+      style={{
+        borderLeftColor: isSelected ? 'var(--project-accent)' : 'transparent',
+        backgroundColor: !useTokenBg && statusTint ? statusTint : undefined,
+      }}
     >
-      {shouldPulse && !isSelected && statusColor && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -left-[2px] inset-y-2 w-[2px] animate-status-pulse rounded-r-sm"
-          style={{ backgroundColor: statusColor }}
-        />
-      )}
-
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5 truncate font-mono text-[10px] leading-tight text-muted-foreground/70">
           <span className="truncate" title={session.__projectFullPath}>
