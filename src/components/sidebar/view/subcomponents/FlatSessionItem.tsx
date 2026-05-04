@@ -14,13 +14,20 @@ type FlatSessionItemProps = {
   showHotkey?: boolean;
 };
 
-function prunePath(fullPath: string): string {
+function splitPath(fullPath: string): { prefix: string; leaf: string } {
   const p = fullPath.replace(/^\/home\/[^/]+/, '~');
   const leading = p.startsWith('/') ? '/' : '';
   const parts = p.split('/').filter(Boolean);
-  if (parts.length === 0) return p;
-  if (parts.length <= 3) return p;
-  return `${leading}${parts[0]}/.../${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+  if (parts.length === 0) return { prefix: '', leaf: p };
+  const leaf = parts[parts.length - 1];
+  if (parts.length === 1) return { prefix: leading, leaf };
+  if (parts.length <= 3) {
+    const middle = parts.slice(0, -1).join('/');
+    return { prefix: `${leading}${middle}/`, leaf };
+  }
+  const first = parts[0];
+  const parent = parts[parts.length - 2];
+  return { prefix: `${leading}${first}/.../${parent}/`, leaf };
 }
 
 const STATUS_TINT_BG: Record<FlatSession['__status'], string | null> = {
@@ -63,13 +70,25 @@ export default function FlatSessionItem({
       }}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 truncate font-mono text-[10px] leading-tight text-muted-foreground/70">
-          <span className="truncate" title={session.__projectFullPath}>
-            {prunePath(session.__projectFullPath)} · {timeAgo}
+        <div className="flex min-w-0 items-center gap-1.5 font-mono text-[10px] leading-tight text-muted-foreground/70">
+          <span
+            className="flex min-w-0 flex-1 items-baseline whitespace-nowrap"
+            title={session.__projectFullPath}
+          >
+            {(() => {
+              const { prefix, leaf } = splitPath(session.__projectFullPath);
+              return (
+                <>
+                  <span className="truncate [flex-shrink:99999]">{prefix}</span>
+                  <span className="min-w-0 truncate">{leaf}</span>
+                  <span className="flex-shrink-0 pl-1.5">· {timeAgo}</span>
+                </>
+              );
+            })()}
           </span>
           {isArchived && (
             <span
-              className="flex h-3 items-center gap-0.5 rounded-sm bg-muted px-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground"
+              className="flex h-3 flex-shrink-0 items-center gap-0.5 rounded-sm bg-muted px-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground"
               title="Archived — kept on disk, only visible via search"
             >
               <Archive className="h-2.5 w-2.5" />
