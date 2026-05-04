@@ -68,7 +68,6 @@ interface ChatMessagesPaneProps {
   onGrantToolPermission: (suggestion: { entry: string; toolName: string }) => { success: boolean };
   autoExpandTools?: boolean;
   showRawParameters?: boolean;
-  showThinking?: boolean;
   chatRenderMode?: ChatRenderMode;
   selectedProject: Project;
 }
@@ -115,7 +114,6 @@ export default function ChatMessagesPane({
   onGrantToolPermission,
   autoExpandTools,
   showRawParameters,
-  showThinking,
   chatRenderMode = 'medium',
   selectedProject,
 }: ChatMessagesPaneProps) {
@@ -310,7 +308,6 @@ export default function ChatMessagesPane({
                 onGrantToolPermission={onGrantToolPermission}
                 autoExpandTools={autoExpandTools}
                 showRawParameters={showRawParameters}
-                showThinking={showThinking}
                 chatRenderMode={chatRenderMode}
                 selectedProject={selectedProject}
                 provider={provider}

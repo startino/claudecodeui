@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useDeviceSettings } from '../../../hooks/useDeviceSettings';
-import { useUiPreferences } from '../../../hooks/useUiPreferences';
+import { useUiPreferences, type ChatRenderMode } from '../../../hooks/useUiPreferences';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useQuickSettingsDrag } from '../hooks/useQuickSettingsDrag';
 import type { PreferenceToggleKey, QuickSettingsPreferences } from '../types';
@@ -24,7 +24,6 @@ export default function QuickSettingsPanelView() {
   const quickSettingsPreferences = useMemo<QuickSettingsPreferences>(() => ({
     autoExpandTools: preferences.autoExpandTools,
     showRawParameters: preferences.showRawParameters,
-    showThinking: preferences.showThinking,
     autoScrollToBottom: preferences.autoScrollToBottom,
     sendByCtrlEnter: preferences.sendByCtrlEnter,
   }), [
@@ -32,12 +31,18 @@ export default function QuickSettingsPanelView() {
     preferences.autoScrollToBottom,
     preferences.sendByCtrlEnter,
     preferences.showRawParameters,
-    preferences.showThinking,
   ]);
 
   const handlePreferenceChange = useCallback(
     (key: PreferenceToggleKey, value: boolean) => {
       setPreference(key, value);
+    },
+    [setPreference],
+  );
+
+  const handleChatRenderModeChange = useCallback(
+    (mode: ChatRenderMode) => {
+      setPreference('chatRenderMode', mode);
     },
     [setPreference],
   );
@@ -75,6 +80,8 @@ export default function QuickSettingsPanelView() {
             isDarkMode={isDarkMode}
             preferences={quickSettingsPreferences}
             onPreferenceChange={handlePreferenceChange}
+            chatRenderMode={preferences.chatRenderMode}
+            onChatRenderModeChange={handleChatRenderModeChange}
           />
         </div>
       </div>

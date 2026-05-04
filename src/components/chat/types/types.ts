@@ -126,7 +126,6 @@ export interface ChatInterfaceProps {
   onShowSettings?: () => void;
   autoExpandTools?: boolean;
   showRawParameters?: boolean;
-  showThinking?: boolean;
   chatRenderMode?: 'lean' | 'medium' | 'debugging';
   autoScrollToBottom?: boolean;
   sendByCtrlEnter?: boolean;

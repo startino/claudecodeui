@@ -1,6 +1,5 @@
 import {
   ArrowDown,
-  Brain,
   Eye,
   Languages,
   Maximize2,
@@ -32,11 +31,6 @@ export const TOOL_DISPLAY_TOGGLES: PreferenceToggleItem[] = [
     key: 'showRawParameters',
     labelKey: 'quickSettings.showRawParameters',
     icon: Eye,
-  },
-  {
-    key: 'showThinking',
-    labelKey: 'quickSettings.showThinking',
-    icon: Brain,
   },
 ];
 

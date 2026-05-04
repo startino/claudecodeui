@@ -2,6 +2,7 @@ import { Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DarkModeToggle } from '../../../shared/view/ui';
 import LanguageSelector from '../../../shared/view/ui/LanguageSelector';
+import type { ChatRenderMode } from '../../../hooks/useUiPreferences';
 import {
   INPUT_SETTING_TOGGLES,
   SETTING_ROW_CLASS,
@@ -20,12 +21,16 @@ type QuickSettingsContentProps = {
   isDarkMode: boolean;
   preferences: QuickSettingsPreferences;
   onPreferenceChange: (key: PreferenceToggleKey, value: boolean) => void;
+  chatRenderMode: ChatRenderMode;
+  onChatRenderModeChange: (mode: ChatRenderMode) => void;
 };
 
 export default function QuickSettingsContent({
   isDarkMode,
   preferences,
   onPreferenceChange,
+  chatRenderMode,
+  onChatRenderModeChange,
 }: QuickSettingsContentProps) {
   const { t } = useTranslation('settings');
 
@@ -58,7 +63,24 @@ export default function QuickSettingsContent({
         <LanguageSelector compact />
       </QuickSettingsSection>
 
-      <QuickSettingsSection title={t('quickSettings.sections.toolDisplay')}>
+      <QuickSettingsSection title={t('appearanceSettings.chatRenderMode.title')}>
+        <div className={SETTING_ROW_CLASS}>
+          <span className="text-sm text-gray-900 dark:text-white">
+            {t('appearanceSettings.chatRenderMode.label')}
+          </span>
+          <select
+            value={chatRenderMode}
+            onChange={(event) => onChatRenderModeChange(event.target.value as ChatRenderMode)}
+            className="rounded-md border border-input bg-card px-2 py-1 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="lean">{t('appearanceSettings.chatRenderMode.options.lean')}</option>
+            <option value="medium">{t('appearanceSettings.chatRenderMode.options.medium')}</option>
+            <option value="debugging">{t('appearanceSettings.chatRenderMode.options.debugging')}</option>
+          </select>
+        </div>
+        <p className="ml-3 text-xs text-gray-500 dark:text-gray-400">
+          {t(`appearanceSettings.chatRenderMode.descriptions.${chatRenderMode}`)}
+        </p>
         {renderToggleRows(TOOL_DISPLAY_TOGGLES)}
       </QuickSettingsSection>
 

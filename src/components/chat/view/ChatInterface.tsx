@@ -45,7 +45,6 @@ function ChatInterface({
   onShowSettings,
   autoExpandTools,
   showRawParameters,
-  showThinking,
   chatRenderMode,
   autoScrollToBottom,
   sendByCtrlEnter,
@@ -384,7 +383,6 @@ function ChatInterface({
           onGrantToolPermission={handleGrantToolPermission}
           autoExpandTools={autoExpandTools}
           showRawParameters={showRawParameters}
-          showThinking={showThinking}
           chatRenderMode={chatRenderMode}
           selectedProject={selectedProject}
         />

@@ -30,7 +30,6 @@ type MessageComponentProps = {
   onGrantToolPermission?: (suggestion: ClaudePermissionSuggestion) => PermissionGrantResult | null | undefined;
   autoExpandTools?: boolean;
   showRawParameters?: boolean;
-  showThinking?: boolean;
   chatRenderMode?: 'lean' | 'medium' | 'debugging';
   selectedProject?: Project | null;
   provider: Provider | string;
@@ -46,7 +45,7 @@ type PermissionGrantState = 'idle' | 'granted' | 'error';
 const COPY_HIDDEN_TOOL_NAMES = new Set(['Bash', 'Edit', 'Write', 'ApplyPatch']);
 const CONTENT_TRUNCATE_CHARS = 4000;
 
-const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, onShowSettings, onGrantToolPermission, autoExpandTools, showRawParameters, showThinking, chatRenderMode = 'medium', selectedProject, provider }: MessageComponentProps) => {
+const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, onShowSettings, onGrantToolPermission, autoExpandTools, showRawParameters, chatRenderMode = 'medium', selectedProject, provider }: MessageComponentProps) => {
   const { t } = useTranslation('chat');
   const isGrouped = prevMessage && prevMessage.type === message.type &&
     ((prevMessage.type === 'assistant') ||
@@ -107,11 +106,6 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
   }, [autoExpandTools, isExpanded, message.isToolUse]);
 
   const formattedTime = useMemo(() => new Date(message.timestamp).toLocaleTimeString(), [message.timestamp]);
-  const shouldHideThinkingMessage = Boolean(message.isThinking && !showThinking);
-
-  if (shouldHideThinkingMessage) {
-    return null;
-  }
 
   return (
     <div
@@ -442,7 +436,7 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
             ) : (
               <div className="text-sm text-gray-700 dark:text-gray-300">
                 {/* Reasoning accordion */}
-                {showThinking && message.reasoning && (
+                {chatRenderMode === 'debugging' && message.reasoning && (
                   <Reasoning className="mb-3" defaultOpen={false}>
                     <ReasoningTrigger />
                     <ReasoningContent>

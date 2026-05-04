@@ -56,7 +56,7 @@ function MainContent({
   onPaneClose,
 }: MainContentProps) {
   const { preferences } = useUiPreferences();
-  const { autoExpandTools, showRawParameters, showThinking, chatRenderMode, autoScrollToBottom, sendByCtrlEnter } = preferences;
+  const { autoExpandTools, showRawParameters, chatRenderMode, autoScrollToBottom, sendByCtrlEnter } = preferences;
 
   const { currentProject, setCurrentProject } = useTaskMaster() as TaskMasterContextValue;
   const { tasksEnabled, isTaskMasterInstalled } = useTasksSettings() as TasksSettingsContextValue;
@@ -141,7 +141,6 @@ function MainContent({
                 onShowSettings={onShowSettings}
                 autoExpandTools={autoExpandTools}
                 showRawParameters={showRawParameters}
-                showThinking={showThinking}
                 chatRenderMode={chatRenderMode}
                 autoScrollToBottom={autoScrollToBottom}
                 sendByCtrlEnter={sendByCtrlEnter}
