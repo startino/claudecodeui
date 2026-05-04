@@ -14,35 +14,13 @@ type FlatSessionItemProps = {
   showHotkey?: boolean;
 };
 
-const CONTAINER_SEGMENTS = new Set([
-  '~',
-  'home',
-  'repos',
-  'repositories',
-  'projects',
-  'project',
-  'src',
-  'code',
-  'dev',
-  'work',
-  'workspace',
-  'tmp',
-  'shared',
-  'Users',
-  'users',
-  'Documents',
-  'Desktop',
-]);
-
 function prunePath(fullPath: string): string {
   const p = fullPath.replace(/^\/home\/[^/]+/, '~');
+  const leading = p.startsWith('/') ? '/' : '';
   const parts = p.split('/').filter(Boolean);
   if (parts.length === 0) return p;
-  if (parts.length === 1) return parts[0];
-  const leaf = parts[parts.length - 1];
-  const parent = parts[parts.length - 2];
-  if (CONTAINER_SEGMENTS.has(parent)) return leaf;
-  return `${parent}/${leaf}`;
+  if (parts.length <= 3) return p;
+  return `${leading}${parts[0]}/.../${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
 }
 
 const STATUS_TINT_BG: Record<FlatSession['__status'], string | null> = {
