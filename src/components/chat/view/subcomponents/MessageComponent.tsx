@@ -31,6 +31,7 @@ type MessageComponentProps = {
   autoExpandTools?: boolean;
   showRawParameters?: boolean;
   showThinking?: boolean;
+  chatRenderMode?: 'lean' | 'medium' | 'debugging';
   selectedProject?: Project | null;
   provider: Provider | string;
 };
@@ -45,7 +46,7 @@ type PermissionGrantState = 'idle' | 'granted' | 'error';
 const COPY_HIDDEN_TOOL_NAMES = new Set(['Bash', 'Edit', 'Write', 'ApplyPatch']);
 const CONTENT_TRUNCATE_CHARS = 4000;
 
-const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, onShowSettings, onGrantToolPermission, autoExpandTools, showRawParameters, showThinking, selectedProject, provider }: MessageComponentProps) => {
+const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, onShowSettings, onGrantToolPermission, autoExpandTools, showRawParameters, showThinking, chatRenderMode = 'medium', selectedProject, provider }: MessageComponentProps) => {
   const { t } = useTranslation('chat');
   const isGrouped = prevMessage && prevMessage.type === message.type &&
     ((prevMessage.type === 'assistant') ||
@@ -254,8 +255,11 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, o
                   />
                 )}
 
-                {/* Tool Result Section */}
+                {/* Tool Result Section. Medium mode suppresses non-error
+                    results — the input above is enough to know what was done;
+                    the noisy output is reserved for debugging mode. */}
                 {message.toolResult && !shouldHideToolResult(message.toolName || 'UnknownTool', message.toolResult) && (
+                  !message.toolResult.isError && chatRenderMode === 'medium' ? null :
                   message.toolResult.isError ? (
                     // Error results - red error box with content
                     <div

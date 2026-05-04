@@ -130,6 +130,10 @@ export function useChatSessionState({
   const scrollPositionRef = useRef({ height: 0, top: 0 });
   const loadAllFinishedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadAllOverlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Always-fresh pointer to the active session id so async callbacks created
+  // inside an effect can detect a session switch without relying on closed-over
+  // useState values, which only update on the next render.
+  const activeSessionIdRef = useRef<string | null>(null);
   const createDiff = useMemo<DiffCalculator>(() => createCachedDiffCalculator(), []);
 
   /* ---------------------------------------------------------------- */
@@ -349,6 +353,7 @@ export function useChatSessionState({
       setCanAbortSession(false);
       setIsLoading(false);
       setCurrentSessionId(null);
+      activeSessionIdRef.current = null;
       sessionStorage.removeItem('cursorSessionId');
       messagesOffsetRef.current = 0;
       setHasMoreMessages(false);
@@ -399,6 +404,7 @@ export function useChatSessionState({
     }
 
     setCurrentSessionId(selectedSession.id);
+    activeSessionIdRef.current = selectedSession.id;
     if (provider === 'cursor') {
       sessionStorage.setItem('cursorSessionId', selectedSession.id);
     }
@@ -418,11 +424,18 @@ export function useChatSessionState({
       setIsLoadingSessionMessages(true);
     }
 
-    // Fetch from server → store merges → chatMessages re-derives automatically
-    sessionStore.fetchFromServer(selectedSession.id, {
-      provider: (selectedSession.__provider || provider) as LLMProvider,
-      projectName: selectedProject.name,
-      projectPath: selectedProject.fullPath || selectedProject.path || '',
+    // Fetch from server → store merges → chatMessages re-derives automatically.
+    // After the first paginated page lands, silently backfill the rest so the
+    // user never has to click "Load all" to find their own past prompts.
+    const requestSessionId = selectedSession.id;
+    const requestProvider = (selectedSession.__provider || provider) as LLMProvider;
+    const requestProjectName = selectedProject.name;
+    const requestProjectPath = selectedProject.fullPath || selectedProject.path || '';
+
+    sessionStore.fetchFromServer(requestSessionId, {
+      provider: requestProvider,
+      projectName: requestProjectName,
+      projectPath: requestProjectPath,
       limit: MESSAGES_PER_PAGE,
       offset: 0,
     }).then(slot => {
@@ -433,6 +446,31 @@ export function useChatSessionState({
       }
       setIsLoadingSessionMessages(false);
       setIsRevalidating(false);
+
+      // Silent backfill: pull every remaining message in the background so
+      // user prompts above the visible window are present immediately when
+      // the user scrolls up. No overlay, no scroll-restore — and we bail if
+      // the user has navigated away by the time the response lands.
+      if (slot && slot.hasMore && requestProvider !== 'cursor') {
+        sessionStore.fetchFromServer(requestSessionId, {
+          provider: requestProvider,
+          projectName: requestProjectName,
+          projectPath: requestProjectPath,
+          limit: null,
+          offset: 0,
+        }).then(fullSlot => {
+          if (!fullSlot) return;
+          if (activeSessionIdRef.current !== requestSessionId) return;
+          setHasMoreMessages(false);
+          setTotalMessages(fullSlot.total);
+          messagesOffsetRef.current = fullSlot.total;
+          setVisibleMessageCount(Infinity);
+          setAllMessagesLoaded(true);
+          allMessagesLoadedRef.current = true;
+        }).catch(() => {
+          // Best-effort — falls back to the existing scroll-up pagination.
+        });
+      }
     }).catch(() => {
       setIsLoadingSessionMessages(false);
       setIsRevalidating(false);

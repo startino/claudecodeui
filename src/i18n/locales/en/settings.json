@@ -122,6 +122,20 @@
       "label": "Dark Mode",
       "description": "Toggle between light and dark themes"
     },
+    "chatRenderMode": {
+      "title": "Chat History",
+      "label": "Render Mode",
+      "options": {
+        "lean": "Lean",
+        "medium": "Medium",
+        "debugging": "Debugging"
+      },
+      "descriptions": {
+        "lean": "Just the conversation — your messages, the assistant's replies, and errors. Tools, results, and thinking are hidden.",
+        "medium": "Conversation plus a compact view of which tools ran. Tool outputs and thinking are hidden; tool errors stay visible.",
+        "debugging": "Show everything: tool inputs, full results, thinking, and task notifications."
+      }
+    },
     "projectSorting": {
       "label": "Project Sorting",
       "description": "How projects are ordered in the sidebar",

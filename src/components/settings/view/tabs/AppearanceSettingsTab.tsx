@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { DarkModeToggle } from '../../../../shared/view/ui';
 import type { CodeEditorSettingsState, ProjectSortOrder } from '../../types/types';
 import LanguageSelector from '../../../../shared/view/ui/LanguageSelector';
+import { useUiPreferences, type ChatRenderMode } from '../../../../hooks/useUiPreferences';
 import SettingsCard from '../SettingsCard';
 import SettingsRow from '../SettingsRow';
 import SettingsSection from '../SettingsSection';
@@ -29,6 +30,8 @@ export default function AppearanceSettingsTab({
   onCodeEditorFontSizeChange,
 }: AppearanceSettingsTabProps) {
   const { t } = useTranslation('settings');
+  const { preferences, setPreference } = useUiPreferences();
+  const chatRenderMode = preferences.chatRenderMode;
 
   return (
     <div className="space-y-8">
@@ -46,6 +49,25 @@ export default function AppearanceSettingsTab({
       <SettingsSection title={t('mainTabs.appearance')}>
         <SettingsCard>
           <LanguageSelector />
+        </SettingsCard>
+      </SettingsSection>
+
+      <SettingsSection title={t('appearanceSettings.chatRenderMode.title')}>
+        <SettingsCard>
+          <SettingsRow
+            label={t('appearanceSettings.chatRenderMode.label')}
+            description={t(`appearanceSettings.chatRenderMode.descriptions.${chatRenderMode}`)}
+          >
+            <select
+              value={chatRenderMode}
+              onChange={(event) => setPreference('chatRenderMode', event.target.value as ChatRenderMode)}
+              className="w-full rounded-lg border border-input bg-card p-2.5 text-sm text-foreground touch-manipulation focus:border-primary focus:ring-1 focus:ring-primary sm:w-40"
+            >
+              <option value="lean">{t('appearanceSettings.chatRenderMode.options.lean')}</option>
+              <option value="medium">{t('appearanceSettings.chatRenderMode.options.medium')}</option>
+              <option value="debugging">{t('appearanceSettings.chatRenderMode.options.debugging')}</option>
+            </select>
+          </SettingsRow>
         </SettingsCard>
       </SettingsSection>
 

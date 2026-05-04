@@ -206,7 +206,8 @@
       "loadAll": "Load all messages",
       "loadingAll": "Loading all messages...",
       "allLoaded": "All messages loaded",
-      "perfWarning": "All messages loaded — scrolling may be slower. Click \"Scroll to bottom\" to restore performance."
+      "perfWarning": "All messages loaded — scrolling may be slower. Click \"Scroll to bottom\" to restore performance.",
+      "toolsOnlyTurn": "tools only"
     }
   },
   "shell": {

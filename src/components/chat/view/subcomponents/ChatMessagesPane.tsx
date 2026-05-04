@@ -1,11 +1,30 @@
 import { useTranslation } from 'react-i18next';
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { ChatMessage } from '../../types/types';
 import type { Project, ProjectSession, LLMProvider } from '../../../../types/app';
 import { getIntrinsicMessageKey } from '../../utils/messageKeys';
+import type { ChatRenderMode } from '../../../../hooks/useUiPreferences';
 import MessageComponent from './MessageComponent';
 import ProviderSelectionEmptyState from './ProviderSelectionEmptyState';
+
+// Drops messages the current render mode hides outright. Per-message branches
+// inside MessageComponent (e.g. tool_result body) are still gated there, since
+// some message kinds are partially shown.
+function isMessageHiddenByMode(message: ChatMessage, mode: ChatRenderMode): boolean {
+  if (mode === 'debugging') return false;
+
+  if (message.isTaskNotification) return true;
+  if (message.isThinking) return true;
+
+  if (mode === 'lean') {
+    // Hide the whole tool_use entry (input + result) and any standalone tool result.
+    if (message.isToolUse) return true;
+    if (message.toolResult && !message.isToolUse) return true;
+  }
+
+  return false;
+}
 
 interface ChatMessagesPaneProps {
   scrollContainerRef: RefObject<HTMLDivElement>;
@@ -50,6 +69,7 @@ interface ChatMessagesPaneProps {
   autoExpandTools?: boolean;
   showRawParameters?: boolean;
   showThinking?: boolean;
+  chatRenderMode?: ChatRenderMode;
   selectedProject: Project;
 }
 
@@ -96,12 +116,18 @@ export default function ChatMessagesPane({
   autoExpandTools,
   showRawParameters,
   showThinking,
+  chatRenderMode = 'medium',
   selectedProject,
 }: ChatMessagesPaneProps) {
   const { t } = useTranslation('chat');
   const messageKeyMapRef = useRef<WeakMap<ChatMessage, string>>(new WeakMap());
   const allocatedKeysRef = useRef<Set<string>>(new Set());
   const generatedMessageKeyCounterRef = useRef(0);
+
+  const filteredMessages = useMemo(() => {
+    if (chatRenderMode === 'debugging') return visibleMessages;
+    return visibleMessages.filter((m) => !isMessageHiddenByMode(m, chatRenderMode));
+  }, [visibleMessages, chatRenderMode]);
 
   // Keep keys stable across prepends so existing MessageComponent instances retain local state.
   const getMessageKey = useCallback((message: ChatMessage) => {
@@ -247,11 +273,35 @@ export default function ChatMessagesPane({
             </div>
           )}
 
-          {visibleMessages.map((message, index) => {
-            const prevMessage = index > 0 ? visibleMessages[index - 1] : null;
-            return (
+          {filteredMessages.flatMap((message, index) => {
+            const prevMessage = index > 0 ? filteredMessages[index - 1] : null;
+            // In lean/medium, two consecutive user messages mean the assistant
+            // turn between them rendered to nothing (only tools / thinking).
+            // Drop a small "tools only" divider so the user knows something
+            // happened — and isn't left thinking the assistant ignored them.
+            const showSilentTurnDivider =
+              chatRenderMode !== 'debugging' &&
+              message.type === 'user' &&
+              prevMessage?.type === 'user';
+            const messageKey = getMessageKey(message);
+            const nodes = [];
+            if (showSilentTurnDivider) {
+              nodes.push(
+                <div
+                  key={`${messageKey}-silent-turn`}
+                  className="flex items-center gap-2 px-4 text-[11px] text-muted-foreground/70"
+                >
+                  <div className="h-px flex-1 bg-border/60" />
+                  <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5">
+                    {t('session.messages.toolsOnlyTurn')}
+                  </span>
+                  <div className="h-px flex-1 bg-border/60" />
+                </div>,
+              );
+            }
+            nodes.push(
               <MessageComponent
-                key={getMessageKey(message)}
+                key={messageKey}
                 message={message}
                 prevMessage={prevMessage}
                 createDiff={createDiff}
@@ -261,10 +311,12 @@ export default function ChatMessagesPane({
                 autoExpandTools={autoExpandTools}
                 showRawParameters={showRawParameters}
                 showThinking={showThinking}
+                chatRenderMode={chatRenderMode}
                 selectedProject={selectedProject}
                 provider={provider}
-              />
+              />,
             );
+            return nodes;
           })}
         </>
       )}

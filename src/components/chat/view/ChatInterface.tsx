@@ -385,6 +385,7 @@ function ChatInterface({
           autoExpandTools={autoExpandTools}
           showRawParameters={showRawParameters}
           showThinking={showThinking}
+          chatRenderMode={chatRenderMode}
           selectedProject={selectedProject}
         />
 
